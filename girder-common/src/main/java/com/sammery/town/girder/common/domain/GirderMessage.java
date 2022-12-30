@@ -1,73 +1,39 @@
 package com.sammery.town.girder.common.domain;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Arrays;
 
 /**
  * 代理客户端与代理服务器消息交换协议
  * @author forose
  */
+@Getter@Setter
 public class GirderMessage {
 
-    /** 心跳消息 */
-    public static final byte TYPE_HEART = 0x07;
+    /** 68 */
+    private byte head;
 
-    /** 认证消息，检测clientKey是否正确 */
-    public static final byte TYPE_AUTH = 0x01;
-
-    /** 保活确认消息 */
-    public static final byte TYPE_ACK = 0x02;
-
-    /** 代理后端服务器建立连接消息 */
-    public static final byte TYPE_CONNECT = 0x03;
-
-    /** 代理后端服务器断开连接消息 */
-    public static final byte TYPE_DISCONNECT = 0x04;
-
-    /** 代理数据传输 */
-    public static final byte TYPE_TRANSFER = 0x05;
+    /** 报文长度 包含去掉68和16之后的所有 */
+    private int length;
 
     /** 消息类型 */
     private byte type;
 
     /** 消息流水号 */
-    private long serialNumber;
-
-    /** 消息命令请求信息 */
-    private String uri;
+    private int sn;
 
     /** 消息传输数据 */
     private byte[] data;
 
-    public void setUri(String uri) {
-        this.uri = uri;
-    }
+    /**
+     * 消息的crc校验 去掉68之后到校验位前的所有部分 crc16/x25校验
+     */
+    private byte[] crc;
 
-    public String getUri() {
-        return uri;
-    }
-
-    public byte[] getData() {
-        return data;
-    }
-
-    public void setData(byte[] data) {
-        this.data = data;
-    }
-
-    public byte getType() {
-        return type;
-    }
-
-    public void setType(byte type) {
-        this.type = type;
-    }
-
-    public long getSerialNumber() {
-        return serialNumber;
-    }
-
-    public void setSerialNumber(long serialNumber) {
-        this.serialNumber = serialNumber;
-    }
-
+    /**
+     * 消息16结尾
+     */
+    private byte tail;
 }

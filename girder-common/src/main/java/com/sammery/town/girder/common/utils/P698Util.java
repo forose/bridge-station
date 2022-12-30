@@ -8,6 +8,8 @@
  */
 package com.sammery.town.girder.common.utils;
 
+import sun.nio.cs.MS1250;
+
 /**
  * 说明:
  *
@@ -51,13 +53,22 @@ public class P698Util{
 			0xf78f, 0xe606, 0xd49d, 0xc514, 0xb1ab, 0xa022, 0x92b9, 0x8330,
 			0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 	};
-	private static int obtainFcs(byte[] message, int pos, int len){
+	public static int obtainFcs(byte[] message, int pos, int len){
 		int crc16 = 0xFFFF;
 		while(len>0){
 			crc16 = (crc16 >> 8) ^ CRC16_FAST_TABLE[ (crc16^(message[pos++] & 0xFF))&0xFF ];
 			len--;
 		}
 		return (crc16 ^ 0xFFFF);
+	}
+
+	public static byte[] obtainCrc(byte[] message){
+		System.out.println(message.length - 1);
+		int fcs = obtainFcs(message,1,message.length - 1);
+		byte[] bytes = new byte[2];
+		bytes[0] = (byte) (fcs & 0xFF);
+		bytes[1] = (byte) ((fcs >> 8) & 0xFF);
+		return bytes;
 	}
 
 	public static boolean verifyHcs(byte[] message){
