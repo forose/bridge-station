@@ -17,13 +17,9 @@ import static io.netty.buffer.Unpooled.buffer;
  */
 public class GirderEncoder extends MessageToByteEncoder<GirderMessage> {
 
-    private static final int TYPE_SIZE = 1;
-
-    private static final int SERIAL_NUMBER_SIZE = 2;
-
     @Override
     protected void encode(ChannelHandlerContext ctx, GirderMessage msg, ByteBuf out) throws Exception {
-        int length = 2 + TYPE_SIZE + SERIAL_NUMBER_SIZE + (msg.getData() == null ? 0 : msg.getData().length) + 2;
+        int length = 2 + 1 + 2 + 2 + (msg.getData() == null ? 0 : msg.getData().length);
         out.writeByte(0x68);
         out.writeByte(length & 0xFF);
         out.writeByte((length >> 8) & 0xFF);
