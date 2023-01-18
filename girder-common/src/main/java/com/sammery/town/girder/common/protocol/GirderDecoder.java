@@ -7,7 +7,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import lombok.extern.slf4j.Slf4j;
-import sun.nio.cs.ext.MS874;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,18 +24,18 @@ public class GirderDecoder extends ByteArrayDecoder {
         msg.readBytes(bytes);
         //打印出已经处理好的完整的数据内容
         log.debug(CommUtil.byteToHexStringWithBlank(bytes));
-        out.add(obtainTransMessage(bytes));
+        if (!P698Util.verifyFcs(bytes)){
+            return;
+        }
+        out.add(transMessage(bytes));
     }
 
-    private static GirderMessage obtainTransMessage(byte[] bytes) {
+    private GirderMessage transMessage(byte[] bytes) {
         GirderMessage msg = new GirderMessage();
-        msg.setHead(bytes[0]);
-        msg.setLength(((bytes[2]<<8) & 0xFF) + (bytes[1] & 0xFF));
+        int length = ((bytes[2]<<8) & 0xFF) + (bytes[1] & 0xFF);
         msg.setType(bytes[3]);
-        msg.setSn(((bytes[4]<<8) & 0xFF) + (bytes[5] & 0xFF));
-        msg.setData(Arrays.copyOfRange(bytes,6,msg.getLength() - 1));
-        msg.setCrc(P698Util.obtainCrc(Arrays.copyOf(bytes,msg.getLength() - 1)));
-        msg.setTail(bytes[msg.getLength() + 1]);
+        msg.setSn((short) (((bytes[4]<<8) & 0xFF00) + (bytes[5] & 0xFF)));
+        msg.setData(Arrays.copyOfRange(bytes,6,length - 1));
         return msg;
     }
 }

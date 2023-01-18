@@ -63,7 +63,6 @@ public class P698Util{
 	}
 
 	public static byte[] obtainCrc(byte[] message){
-		System.out.println(message.length - 1);
 		int fcs = obtainFcs(message,1,message.length - 1);
 		byte[] bytes = new byte[2];
 		bytes[0] = (byte) (fcs & 0xFF);
@@ -84,11 +83,11 @@ public class P698Util{
 
 	public static boolean verifyFcs(byte[] message){
 		int length = (message[1] & 0xFF) + ((message[2] & 0xFF) << 8);
-		return CommUtil.byteToHexString(message,length - 1,2).equalsIgnoreCase(obtainFcs(message));
+		return CommUtil.byteToHexString(message,length - 1,2).equalsIgnoreCase(CommUtil.byteToHexString(obtainFcs(message)));
 	}
 
-	public static String obtainFcs(byte[] message){
+	public static byte[] obtainFcs(byte[] message){
 		int fcs = obtainFcs(message, 1, (message[1] & 0xFF) + ((message[2] & 0xFF) << 8) - 2);
-		return (CommUtil.byteToHexString(fcs & 0xFF) + CommUtil.byteToHexString((fcs & 0xFF00) >> 8)).toUpperCase();
+		return new byte[]{(byte) (fcs & 0xFF), (byte) ((fcs & 0xFF00) >> 8)};
 	}
 }
