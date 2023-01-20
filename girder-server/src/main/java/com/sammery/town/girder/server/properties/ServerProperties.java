@@ -7,7 +7,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * @author 沙漠渔
  */
-@Getter@Setter@ConfigurationProperties(prefix = "girder.server")
+@Getter@Setter
+@ConfigurationProperties(prefix = "girder.server")
 public class ServerProperties {
     private Integer boss = 2;
 

@@ -1,6 +1,7 @@
 package com.sammery.town.girder.server.handler;
 
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +19,8 @@ public class HeartHandler extends IdleStateHandler {
 
     @Override
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
-        if (IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT == evt || IdleStateEvent.READER_IDLE_STATE_EVENT == evt) {
-            log.warn("channel read timeout {}", ctx.channel());
+        if (evt.state() == IdleState.READER_IDLE) {
+            log.warn("Channel Read Timeout {}", ctx.channel());
             ctx.channel().close();
         }
     }

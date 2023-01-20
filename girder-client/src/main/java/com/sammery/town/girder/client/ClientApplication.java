@@ -2,6 +2,8 @@ package com.sammery.town.girder.client;
 
 import com.sammery.town.girder.client.handler.ClientHandler;
 import com.sammery.town.girder.client.handler.HeartHandler;
+import com.sammery.town.girder.client.station.BridgeStation;
+import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.consts.MessageType;
 import com.sammery.town.girder.common.domain.GirderMessage;
 import com.sammery.town.girder.common.protocol.GirderDecoder;
@@ -23,6 +25,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.nio.ByteOrder;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,47 +34,6 @@ import java.util.concurrent.TimeUnit;
  */
 @SpringBootApplication
 public class ClientApplication {
-
-    private Bootstrap bootstrap;
-    private NioEventLoopGroup workerGroup;
-
-    @PostConstruct
-    public void initChannel() throws InterruptedException {
-        workerGroup = new NioEventLoopGroup();
-        bootstrap = new Bootstrap();
-        bootstrap.group(workerGroup)
-                .channel(NioSocketChannel.class)
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    public void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new HeartHandler(0,10,0));
-                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN,1024 * 8,1,2,-1,0,true));
-                        ch.pipeline().addLast(new GirderEncoder());
-                        ch.pipeline().addLast(new GirderDecoder());
-                        ch.pipeline().addLast(new ClientHandler());
-                    }
-                });
-        link();
-    }
-    private void link(){
-        bootstrap.connect("127.0.0.1",9001).addListener((ChannelFutureListener) future -> {
-            if (future.isSuccess()){
-                GirderMessage message = new GirderMessage();
-                message.setType(MessageType.AUTH);
-                message.setData(new byte[]{0x11});
-                future.channel().writeAndFlush(message);
-            }else {
-                TimeUnit.SECONDS.sleep(10);
-                link();
-            }
-        });
-    }
-    @PreDestroy
-    public void destroy() {
-        if (workerGroup != null){
-            workerGroup.shutdownGracefully();
-        }
-    }
     public static void main(String[] args) {
         SpringApplication.run(ClientApplication.class, args);
     }
