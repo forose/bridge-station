@@ -12,7 +12,7 @@ import lombok.Setter;
 public class GirderMessage {
 
     /** 消息类型 */
-    private byte type;
+    private byte cmd;
 
     /** 消息流水号 */
     private short sn;

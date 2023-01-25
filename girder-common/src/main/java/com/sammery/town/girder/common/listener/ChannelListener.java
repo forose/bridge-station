@@ -14,5 +14,5 @@ public interface ChannelListener extends EventListener {
      * @param channel 连接
      * @throws Exception 抛出异常
      */
-    void complete(Channel channel) throws Exception;
+    void complete(Channel channel);
 }

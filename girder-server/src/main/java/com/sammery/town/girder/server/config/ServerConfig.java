@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * 装配
+ *
  * @author 沙漠渔
  */
 @Configuration
@@ -15,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 public class ServerConfig {
     @Bean
     @ConditionalOnMissingBean
-    public ServerProperties serverProperties(){
+    public ServerProperties serverProperties() {
         return new ServerProperties();
     }
 }

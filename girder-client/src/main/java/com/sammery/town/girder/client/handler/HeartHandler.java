@@ -1,6 +1,6 @@
 package com.sammery.town.girder.client.handler;
 
-import com.sammery.town.girder.common.consts.MessageType;
+import com.sammery.town.girder.common.consts.Command;
 import com.sammery.town.girder.common.domain.GirderMessage;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleState;
@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 心跳检测处理器
+ *
  * @author 沙漠渔
  */
 @Slf4j
@@ -23,7 +24,7 @@ public class HeartHandler extends IdleStateHandler {
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
         if (evt.state() == IdleState.WRITER_IDLE) {
             GirderMessage message = new GirderMessage();
-            message.setType(MessageType.HEART);
+            message.setCmd(Command.HEART);
             ctx.channel().writeAndFlush(message);
         }
     }

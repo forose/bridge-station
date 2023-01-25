@@ -1,7 +1,7 @@
 package com.sammery.town.girder.server.station;
 
 import com.sammery.town.girder.common.consts.Constants;
-import com.sammery.town.girder.common.consts.MessageType;
+import com.sammery.town.girder.common.consts.Command;
 import com.sammery.town.girder.common.domain.GirderMessage;
 import com.sammery.town.girder.common.listener.ChannelListener;
 import com.sammery.town.girder.common.protocol.GirderDecoder;
@@ -14,14 +14,12 @@ import com.sammery.town.girder.server.handler.StationHandler;
 import com.sammery.town.girder.server.properties.ServerProperties;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.logging.LoggingHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,32 +44,41 @@ public class BridgeStation {
      */
     private EventLoopGroup workerGroup;
 
+    private EventLoopGroup stationGroup;
+
     private Channel channel;
 
     private final Map<String, Channel> binding = new ConcurrentHashMap<>();
 
-    public synchronized void bind(Channel channel, boolean station) {
-        String key = channel.attr(Constants.CHANNEL_KEY).get();
+    public synchronized void bind(String key, Channel channel, boolean station) {
         Channel has = binding.get(key);
-        if (has != null){
-            has.attr(Constants.NEXT_CHANNEL).set(channel);
-            channel.attr(Constants.NEXT_CHANNEL).set(has);
-            GirderMessage message = new GirderMessage();
-            message.setType(MessageType.CONNECT);
-            message.setData(key.getBytes());
-            if (station){
+        if (has != null) {
+            if (channel != null) {
+                has.attr(Constants.NEXT_CHANNEL).set(channel);
+                channel.attr(Constants.NEXT_CHANNEL).set(has);
+                GirderMessage message = new GirderMessage();
+                message.setCmd(Command.CONNECT);
+                message.setData(key.getBytes());
+                if (station) {
+                    has.writeAndFlush(message);
+                    channel.config().setAutoRead(true);
+                } else {
+                    channel.writeAndFlush(message);
+                    has.config().setAutoRead(true);
+                }
+            } else {
+                GirderMessage message = new GirderMessage();
+                message.setCmd(Command.DISCON);
+                message.setData(key.getBytes());
                 has.writeAndFlush(message);
-            }else {
-                channel.writeAndFlush(message);
             }
-        }else {
-            binding.put(key,channel);
+        } else {
+            binding.put(key, channel);
         }
     }
 
-    public void link(String ip, int port, final ChannelListener listener) throws Exception {
-        EventLoopGroup group = new NioEventLoopGroup();
-        new Bootstrap().group(group).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY,true)
+    public void link(String ip, int port, final ChannelListener listener) {
+        new Bootstrap().group(stationGroup).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
                     protected void initChannel(Channel channel) {
@@ -84,16 +91,17 @@ public class BridgeStation {
                 log.info("连接服务端成功: {}", future.channel());
                 listener.complete(future.channel());
             } else {
-                log.warn("connect proxy server failed", future.cause());
+                log.warn("连接服务端失败: {}", future.cause().getLocalizedMessage());
                 listener.complete(null);
             }
-        }).sync();
+        });
     }
 
     @PostConstruct
     public void initChannel() throws InterruptedException {
         bossGroup = new NioEventLoopGroup(serverProperties.getBoss());
         workerGroup = new NioEventLoopGroup(serverProperties.getWorker());
+        stationGroup = new NioEventLoopGroup();
         ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
@@ -132,6 +140,9 @@ public class BridgeStation {
         }
         if (bossGroup != null) {
             bossGroup.shutdownGracefully();
+        }
+        if (stationGroup != null){
+            stationGroup.shutdownGracefully();
         }
     }
 }

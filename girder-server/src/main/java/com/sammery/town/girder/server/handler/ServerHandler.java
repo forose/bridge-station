@@ -2,43 +2,51 @@ package com.sammery.town.girder.server.handler;
 
 import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.domain.GirderMessage;
-import com.sammery.town.girder.common.listener.ChannelListener;
 import com.sammery.town.girder.common.utils.CommUtil;
 import com.sammery.town.girder.server.station.BridgeStation;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.ConnectException;
 import java.net.SocketAddress;
 
-import static com.sammery.town.girder.common.consts.MessageType.*;
+import static com.sammery.town.girder.common.consts.Command.*;
 
 /**
  * 消息处理器
  *
  * @author 沙漠渔
  */
-@Slf4j@RequiredArgsConstructor
+@Slf4j
+@RequiredArgsConstructor
 public class ServerHandler extends ChannelInboundHandlerAdapter {
     private final BridgeStation station;
+
     /**
      * 通道关闭
      *
      * @param ctx 上下文
-     * @throws Exception 异常
      */
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        log.warn("Channel Inactive : " + ctx.channel());
+    public void channelInactive(ChannelHandlerContext ctx) {
+        log.warn("通道连接关闭: " + ctx.channel());
+        Channel bridgeChannel = ctx.channel();
+        if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
+            // todo 主通道断开的话 把该终端的私有连接都给断开  暂时未做
+        }else {
+            Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
+            if (stationChannel != null && stationChannel.isActive()){
+                stationChannel.close();
+            }
+        }
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        log.info("Channel Active : " + ctx.channel());
-        SocketAddress remoteAddress = ctx.channel().remoteAddress();
+    public void channelActive(ChannelHandlerContext ctx) {
+        log.info("通道连接建立: " + ctx.channel());
     }
 
     /**
@@ -50,15 +58,15 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         GirderMessage message = (GirderMessage) msg;
-        switch (message.getType()) {
+        switch (message.getCmd()) {
             case AUTH:
                 authMessageHandler(ctx, message);
                 break;
             case CONNECT:
                 connectMessageHandler(ctx, message);
                 break;
-            case DISCONNECT:
-                disconnectMessageHandler(ctx, message);
+            case DISCON:
+                disconnectMessageHandler(ctx);
                 break;
             case TRANSFER:
                 transferMessageHandler(ctx, message);
@@ -78,32 +86,41 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             log.info("校验通过");
             // 组织其可以使用的端口
             String hex = Integer.toHexString(18080);
-            msg.setType(AUTH);
+            msg.setCmd(AUTH);
             msg.setData(CommUtil.hex2Binary(hex));
             ctx.channel().writeAndFlush(msg);
             ctx.channel().attr(Constants.MANAGE_CHANNEL).set(true);
         }
     }
 
-    private void connectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) throws Exception {
+    private void connectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
         String key = new String(msg.getData());
-        if (ctx.channel().hasAttr(Constants.MANAGE_CHANNEL)){
-            // 如果是空值通道上发过来的连接消息则去连接后端服务
+        Channel bridgeChannel = ctx.channel();
+        if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
+            // 如果是控制通道上发过来的连接消息则去连接后端服务
             String[] lan = key.split("@")[1].split(":");
-            station.link("192.168.0.107",6600, channel -> {
-                if (channel != null){
+            station.link("192.168.0.107", 6600, channel -> {
+                if (channel != null) {
+                    channel.config().setAutoRead(false);
                     channel.attr(Constants.CHANNEL_KEY).set(key);
-                    station.bind(channel,true);
+                    station.bind(key, channel, true);
+                } else {
+                    station.bind(key, null, true);
                 }
             });
-        }else {
+        } else {
             ctx.channel().attr(Constants.CHANNEL_KEY).set(key);
-            station.bind(ctx.channel(),false);
+            station.bind(key, ctx.channel(), false);
         }
     }
 
-    private void disconnectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
-
+    private void disconnectMessageHandler(ChannelHandlerContext ctx) {
+        log.warn("通道断开消息: " + ctx.channel());
+        Channel bridgeChannel = ctx.channel();
+        Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
+        if (stationChannel != null) {
+            stationChannel.close();
+        }
     }
 
     private void transferMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
@@ -111,23 +128,26 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         Channel stationChannel = ctx.channel().attr(Constants.NEXT_CHANNEL).get();
         if (stationChannel != null) {
             stationChannel.writeAndFlush(msg.getData());
-        }else {
-            // 发送断开的消息
         }
     }
 
     private void heartMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
-        log.info("Channel Heart : " + ctx.channel());
         ctx.channel().writeAndFlush(msg);
     }
 
-
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        Channel channel = ctx.channel();
-        if (channel.isActive()) {
-            ctx.close();
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) {
+        Channel bridgeChannel = ctx.channel();
+        Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
+        if (stationChannel != null) {
+            stationChannel.config().setAutoRead(bridgeChannel.isWritable());
         }
     }
 
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        if (ctx.channel().isActive()) {
+            ctx.close();
+        }
+    }
 }

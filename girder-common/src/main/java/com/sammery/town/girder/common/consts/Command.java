@@ -4,7 +4,7 @@ package com.sammery.town.girder.common.consts;
  * 常量类
  * @author 沙漠渔
  */
-public interface MessageType {
+public interface Command {
     /**
      * 心跳 包括传递自己有哪些连接以及服务端验证是否完整,
      * 如果完整则数据域为空
@@ -25,7 +25,7 @@ public interface MessageType {
     byte CONNECT = 0x02;
 
     /** 代理后端服务器断开连接消息 */
-    byte DISCONNECT = 0x03;
+    byte DISCON = 0x03;
 
     /** 代理数据传输 */
     byte TRANSFER = 0x04;

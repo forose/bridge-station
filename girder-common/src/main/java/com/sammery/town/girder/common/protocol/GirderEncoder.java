@@ -28,7 +28,7 @@ public class GirderEncoder extends MessageToByteEncoder<GirderMessage> {
         byteBuffer.put((byte) 0x68);
         byteBuffer.put((byte) (length & 0xFF));
         byteBuffer.put((byte) ((length >> 8) & 0xFF));
-        byteBuffer.put(msg.getType());
+        byteBuffer.put(msg.getCmd());
         byteBuffer.putShort(sn == 0 ? (short) (SERIAL.getAndIncrement() & 0xFFFF) : sn);
         byteBuffer.put(msg.getData() == null ? new byte[0] : msg.getData());
         byteBuffer.put((byte) 0x00);
@@ -38,7 +38,7 @@ public class GirderEncoder extends MessageToByteEncoder<GirderMessage> {
         byteBuffer.put(length - 1,crc[0]);
         byteBuffer.put(length, crc[1]);
         byte[] send = byteBuffer.array();
-        log.debug(CommUtil.byteToHexStringWithBlank(send));
+        log.debug(ctx.channel() + " -> " + CommUtil.byteToHexStringWithBlank(send));
         out.writeBytes(send);
     }
 }
