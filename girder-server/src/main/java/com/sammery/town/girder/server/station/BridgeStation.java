@@ -86,7 +86,7 @@ public class BridgeStation {
                         channel.pipeline().addLast(new StationEncoder());
                         channel.pipeline().addLast(new StationHandler(BridgeStation.this));
                     }
-                }).connect("127.0.0.1", 28089).addListener((ChannelFutureListener) future -> {
+                }).connect("192.168.0.107", 6600).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 log.info("连接服务端成功: {}", future.channel());
                 listener.complete(future.channel());
@@ -110,11 +110,11 @@ public class BridgeStation {
                     @Override
                     public void initChannel(SocketChannel ch) {
                         // 添加心跳处理
-                        ch.pipeline().addLast(new HeartHandler(30, 0, 0));
+                        ch.pipeline().addLast(new HeartHandler(250, 0, 0));
                         // 添加出站编码器
                         ch.pipeline().addLast(new GirderEncoder());
                         // 添加入站解码器
-                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 1024 * 8, 1, 2, -1, 0, true));
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 1024 * 1024, 1, 2, -1, 0, true));
                         ch.pipeline().addLast(new GirderDecoder());
                         ch.pipeline().addLast(new ServerHandler(BridgeStation.this));
                     }
@@ -141,7 +141,7 @@ public class BridgeStation {
         if (bossGroup != null) {
             bossGroup.shutdownGracefully();
         }
-        if (stationGroup != null){
+        if (stationGroup != null) {
             stationGroup.shutdownGracefully();
         }
     }

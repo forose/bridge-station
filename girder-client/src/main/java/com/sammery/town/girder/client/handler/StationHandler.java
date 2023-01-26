@@ -36,13 +36,15 @@ public class StationHandler extends ChannelInboundHandlerAdapter {
         Channel stationChannel = ctx.channel();
         Channel bridgeChannel = stationChannel.attr(Constants.NEXT_CHANNEL).get();
         if (bridgeChannel != null){
-            // 告知自己已经断开,断开服务端对应连接
-            GirderMessage message = new GirderMessage();
-            message.setCmd(DISCON);
-            bridgeChannel.writeAndFlush(message);
+            if (bridgeChannel.hasAttr(Constants.STATUS_RETURN) && bridgeChannel.attr(Constants.STATUS_RETURN).get()){
+                station.returnChanel(bridgeChannel);
+            }else {
+                // 告知自己已经断开,断开服务端对应连接
+                GirderMessage message = new GirderMessage();
+                message.setCmd(DISCON);
+                bridgeChannel.writeAndFlush(message);
+            }
         }
-        // 归还持有的数据连接通道
-        station.returnChanel(ctx.channel().attr(Constants.NEXT_CHANNEL).get());
     }
 
     /**

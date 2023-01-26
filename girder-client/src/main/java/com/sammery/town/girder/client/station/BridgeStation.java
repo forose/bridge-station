@@ -62,7 +62,7 @@ public class BridgeStation {
 
     private Channel manageChannel;
 
-    private Map<Integer,Channel> stations = new ConcurrentHashMap<>();
+    private Map<Integer, Channel> stations = new ConcurrentHashMap<>();
 
     /**
      * 打开本地需要启动的服务端口
@@ -73,7 +73,7 @@ public class BridgeStation {
         ChannelFuture channelFuture = stationBootstrap.bind(port);
         channelFuture.addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                stations.put(port,future.channel());
+                stations.put(port, future.channel());
                 log.info("BridgeStation success bind to " + port);
             } else {
                 log.error("BridgeStation fail bind to " + port);
@@ -107,7 +107,7 @@ public class BridgeStation {
         if (channel != null) {
             listener.complete(channel);
         } else {
-            transferBootstrap.connect("127.0.0.1", 9001).addListener((ChannelFutureListener) future -> {
+            transferBootstrap.connect("127.0.0.1", 39001).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
                     log.info("通道连接成功: {}", future.channel());
                     listener.complete(future.channel());
@@ -132,6 +132,7 @@ public class BridgeStation {
     }
 
     public synchronized void returnChanel(Channel channel) {
+        channel.attr(Constants.STATUS_RETURN).set(false);
         if (CHANNEL_POOL.size() > MAX_POOL_SIZE) {
             channel.close();
         } else {
@@ -162,11 +163,11 @@ public class BridgeStation {
             @Override
             public void initChannel(SocketChannel ch) {
                 // 添加心跳处理
-                ch.pipeline().addLast(new HeartHandler(0, 10, 0));
+                ch.pipeline().addLast(new HeartHandler(0, 120, 0));
                 // 添加出站编码器
                 ch.pipeline().addLast(new GirderEncoder());
                 // 添加入站编码器
-                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 1024 * 8, 1, 2, -1, 0, true));
+                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 1024 * 1024, 1, 2, -1, 0, true));
                 ch.pipeline().addLast(new GirderDecoder());
                 ch.pipeline().addLast(new ClientHandler(BridgeStation.this));
             }
@@ -175,14 +176,14 @@ public class BridgeStation {
     }
 
     public synchronized void link() {
-        for (Channel channel : stations.values()){
-            if (channel.isActive()){
+        for (Channel channel : stations.values()) {
+            if (channel.isActive()) {
                 channel.close();
             }
         }
         stations.clear();
         if (manageChannel == null || !manageChannel.isOpen() || !manageChannel.isActive()) {
-            transferBootstrap.connect("127.0.0.1", 9001).addListener((ChannelFutureListener) future -> {
+            transferBootstrap.connect("127.0.0.1", 39001).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
                     GirderMessage message = new GirderMessage();
                     message.setCmd(Command.AUTH);

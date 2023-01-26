@@ -24,7 +24,7 @@ public class GirderDecoder extends ByteArrayDecoder {
         msg.readBytes(bytes);
         //打印出已经处理好的完整的数据内容
         log.debug(ctx.channel() + " <- " + CommUtil.byteToHexStringWithBlank(bytes));
-        if (!P698Util.verifyFcs(bytes)){
+        if (!P698Util.verifyFcs(bytes)) {
             return;
         }
         out.add(transMessage(bytes));
@@ -32,10 +32,10 @@ public class GirderDecoder extends ByteArrayDecoder {
 
     private GirderMessage transMessage(byte[] bytes) {
         GirderMessage msg = new GirderMessage();
-        int length = ((bytes[2]<<8) & 0xFF) + (bytes[1] & 0xFF);
+        int length = ((bytes[2] & 0xFF) << 8) + (bytes[1] & 0xFF);
         msg.setCmd(bytes[3]);
-        msg.setSn((short) (((bytes[4]<<8) & 0xFF00) + (bytes[5] & 0xFF)));
-        msg.setData(Arrays.copyOfRange(bytes,6,length - 1));
+        msg.setSn((short) (((bytes[4] & 0xFF) << 8) + (bytes[5] & 0xFF)));
+        msg.setData(Arrays.copyOfRange(bytes, 6, length - 1));
         return msg;
     }
 }

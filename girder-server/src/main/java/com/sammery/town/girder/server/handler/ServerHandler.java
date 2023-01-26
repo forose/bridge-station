@@ -10,9 +10,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.ConnectException;
-import java.net.SocketAddress;
-
 import static com.sammery.town.girder.common.consts.Command.*;
 
 /**
@@ -36,9 +33,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             // todo 主通道断开的话 把该终端的私有连接都给断开  暂时未做
-        }else {
+        } else {
             Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
-            if (stationChannel != null && stationChannel.isActive()){
+            if (stationChannel != null && stationChannel.isActive()) {
                 stationChannel.close();
             }
         }
@@ -85,7 +82,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         if ("11".equals(data)) {
             log.info("校验通过");
             // 组织其可以使用的端口
-            String hex = Integer.toHexString(18080);
+            String hex = Integer.toHexString(23306);
             msg.setCmd(AUTH);
             msg.setData(CommUtil.hex2Binary(hex));
             ctx.channel().writeAndFlush(msg);
@@ -118,7 +115,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         log.warn("通道断开消息: " + ctx.channel());
         Channel bridgeChannel = ctx.channel();
         Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
-        if (stationChannel != null) {
+        if (stationChannel != null && stationChannel.isActive()) {
             stationChannel.close();
         }
     }

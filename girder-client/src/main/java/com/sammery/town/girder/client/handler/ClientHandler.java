@@ -30,7 +30,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        log.info("通道连接关闭: " + ctx.channel());
+        log.warn("通道连接关闭: " + ctx.channel());
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             station.link();
@@ -100,8 +100,13 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         log.warn("通道断开消息: " + ctx.channel());
         Channel bridgeChannel = ctx.channel();
         Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
-        if (stationChannel != null) {
+        if (stationChannel != null && stationChannel.isActive()) {
             stationChannel.close();
+            // 将通道连接置为待归还状态 用于在本地连接断开之后立即归还通道连接
+            bridgeChannel.attr(Constants.STATUS_RETURN).set(true);
+        }else {
+            // 归还持有的数据连接通道
+            station.returnChanel(bridgeChannel);
         }
     }
 
