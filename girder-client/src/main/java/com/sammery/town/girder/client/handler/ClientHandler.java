@@ -82,7 +82,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     private void authMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
         String ports = CommUtil.byteToHexString(msg.getData());
         int port = Integer.parseInt(ports, 16);
-        log.info("端口:" + port);
         station.open(port);
     }
 
@@ -97,7 +96,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void disconnectMessageHandler(ChannelHandlerContext ctx) {
-        log.warn("通道断开消息: " + ctx.channel());
+        log.warn("远端连接断开: " + ctx.channel());
         Channel bridgeChannel = ctx.channel();
         Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
         if (stationChannel != null && stationChannel.isActive()) {

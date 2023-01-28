@@ -72,7 +72,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 heartMessageHandler(ctx, message);
                 break;
             default:
-                log.warn("未支持的消息类型!");
                 break;
         }
     }
@@ -112,7 +111,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void disconnectMessageHandler(ChannelHandlerContext ctx) {
-        log.warn("通道断开消息: " + ctx.channel());
+        log.warn("远端连接断开: " + ctx.channel());
         Channel bridgeChannel = ctx.channel();
         Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
         if (stationChannel != null && stationChannel.isActive()) {

@@ -3,6 +3,7 @@ package com.sammery.town.girder.client.station;
 import com.sammery.town.girder.client.handler.ClientHandler;
 import com.sammery.town.girder.client.handler.HeartHandler;
 import com.sammery.town.girder.client.handler.StationHandler;
+import com.sammery.town.girder.client.properties.ClientProperties;
 import com.sammery.town.girder.common.listener.ChannelListener;
 import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.consts.Command;
@@ -19,6 +20,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -39,7 +41,10 @@ import static com.sammery.town.girder.common.consts.Command.CONNECT;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class BridgeStation {
+
+    private final ClientProperties clientProperties;
 
     /**
      * 负责连接请求
@@ -62,7 +67,7 @@ public class BridgeStation {
 
     private Channel manageChannel;
 
-    private Map<Integer, Channel> stations = new ConcurrentHashMap<>();
+    private final Map<Integer, Channel> stations = new ConcurrentHashMap<>();
 
     /**
      * 打开本地需要启动的服务端口
@@ -100,14 +105,13 @@ public class BridgeStation {
      * 获取客户端与终端之间的连接
      *
      * @param listener 成功之后的回调
-     * @throws Exception
      */
-    public void borrowChannel(final ChannelListener listener) throws Exception {
+    public void borrowChannel(final ChannelListener listener) {
         Channel channel = poll();
         if (channel != null) {
             listener.complete(channel);
         } else {
-            transferBootstrap.connect("127.0.0.1", 39001).addListener((ChannelFutureListener) future -> {
+            transferBootstrap.connect().addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
                     log.info("通道连接成功: {}", future.channel());
                     listener.complete(future.channel());
@@ -145,33 +149,34 @@ public class BridgeStation {
 
     @PostConstruct
     public void init() {
-        stationBootstrap.group(bossGroup, workerGroup);
-        stationBootstrap.channel(NioServerSocketChannel.class)
-                .childOption(ChannelOption.TCP_NODELAY, true);
-        stationBootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
-            @Override
-            public void initChannel(SocketChannel ch) {
-                ch.pipeline().addLast(new StationDecoder());
-                ch.pipeline().addLast(new StationEncoder());
-                // 添加处理器
-                ch.pipeline().addLast(new StationHandler(BridgeStation.this));
-            }
-        });
+        stationBootstrap.group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel.class)
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(new StationDecoder());
+                        ch.pipeline().addLast(new StationEncoder());
+                        // 添加处理器
+                        ch.pipeline().addLast(new StationHandler(BridgeStation.this));
+                    }
+                });
 
-        transferBootstrap.group(workerGroup).channel(NioSocketChannel.class);
-        transferBootstrap.handler(new ChannelInitializer<SocketChannel>() {
-            @Override
-            public void initChannel(SocketChannel ch) {
-                // 添加心跳处理
-                ch.pipeline().addLast(new HeartHandler(0, 120, 0));
-                // 添加出站编码器
-                ch.pipeline().addLast(new GirderEncoder());
-                // 添加入站编码器
-                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 1024 * 1024, 1, 2, -1, 0, true));
-                ch.pipeline().addLast(new GirderDecoder());
-                ch.pipeline().addLast(new ClientHandler(BridgeStation.this));
-            }
-        });
+        transferBootstrap.group(workerGroup).channel(NioSocketChannel.class)
+                .remoteAddress(clientProperties.getHost(), clientProperties.getPort())
+                .handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel ch) {
+                        // 添加心跳处理
+                        ch.pipeline().addLast(new HeartHandler(0, 120, 0));
+                        // 添加出站编码器
+                        ch.pipeline().addLast(new GirderEncoder());
+                        // 添加入站编码器
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 65535, 1, 2, -1, 0, true));
+                        ch.pipeline().addLast(new GirderDecoder());
+                        ch.pipeline().addLast(new ClientHandler(BridgeStation.this));
+                    }
+                });
         link();
     }
 
@@ -183,20 +188,22 @@ public class BridgeStation {
         }
         stations.clear();
         if (manageChannel == null || !manageChannel.isOpen() || !manageChannel.isActive()) {
-            transferBootstrap.connect("127.0.0.1", 39001).addListener((ChannelFutureListener) future -> {
-                if (future.isSuccess()) {
-                    GirderMessage message = new GirderMessage();
-                    message.setCmd(Command.AUTH);
-                    message.setData(new byte[]{0x11});
-                    future.channel().writeAndFlush(message);
-                    future.channel().attr(Constants.MANAGE_CHANNEL).set(true);
-                    manageChannel = future.channel();
-                    log.info("当前控制链路: " + manageChannel);
-                } else {
-                    TimeUnit.SECONDS.sleep(10);
-                    link();
-                }
-            });
+            transferBootstrap.connect()
+                    .addListener((ChannelFutureListener) future -> {
+                        if (future.isSuccess()) {
+                            GirderMessage message = new GirderMessage();
+                            message.setCmd(Command.AUTH);
+                            // todo 待确认是通过什么方式进行验证
+                            message.setData(new byte[]{0x11});
+                            future.channel().writeAndFlush(message);
+                            future.channel().attr(Constants.MANAGE_CHANNEL).set(true);
+                            manageChannel = future.channel();
+                            log.info("当前控制链路: " + manageChannel);
+                        } else {
+                            TimeUnit.SECONDS.sleep(10);
+                            link();
+                        }
+                    });
         }
     }
 

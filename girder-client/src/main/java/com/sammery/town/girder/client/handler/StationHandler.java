@@ -89,13 +89,13 @@ public class StationHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        byte[] bytes = (byte[]) msg;
         log.info("本地连接消息: " + ctx.channel());
-        Channel channel = ctx.channel().attr(Constants.NEXT_CHANNEL).get();
+        Channel stationChannel = ctx.channel();
+        Channel bridgeChannel = stationChannel.attr(Constants.NEXT_CHANNEL).get();
         GirderMessage message = new GirderMessage();
         message.setCmd(TRANSFER);
-        message.setData(bytes);
-        channel.writeAndFlush(message);
+        message.setData((byte[]) msg);
+        bridgeChannel.writeAndFlush(message);
     }
 
     @Override

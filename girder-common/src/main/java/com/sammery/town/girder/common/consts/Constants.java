@@ -4,7 +4,7 @@ import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 
 /**
- * @author forose
+ * @author 沙漠渔
  */
 public interface Constants {
 
@@ -24,7 +24,7 @@ public interface Constants {
     AttributeKey<String> CHANNEL_KEY = AttributeKey.newInstance("channel_key");
 
     /**
-     * 通道连接待归还状态标志
+     * 通道连接待归还状态标志 如果是服务端先断开连接 则会置该状态 在本地连接断开之后归还连接
      */
     AttributeKey<Boolean> STATUS_RETURN = AttributeKey.newInstance("status_return");
 }
