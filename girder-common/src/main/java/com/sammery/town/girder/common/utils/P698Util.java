@@ -62,32 +62,13 @@ public class P698Util{
 		return (crc16 ^ 0xFFFF);
 	}
 
-	public static byte[] obtainCrc(byte[] message){
-		int fcs = obtainFcs(message,1,message.length - 1);
-		byte[] bytes = new byte[2];
-		bytes[0] = (byte) (fcs & 0xFF);
-		bytes[1] = (byte) ((fcs >> 8) & 0xFF);
-		return bytes;
-	}
-
-	public static boolean verifyHcs(byte[] message){
-		//获取地址域长度
-		int saLength = message[4] & 0x0F;
-		return CommUtil.byteToHexString(message,6+saLength+1,2).equalsIgnoreCase(obtainHcs(message));
-	}
-
-	public static String obtainHcs(byte[] message){
-		int hcs = obtainFcs(message,1,6+message[4] & 0x0F);
-		return (CommUtil.byteToHexString(hcs & 0xFF) + CommUtil.byteToHexString((hcs & 0xFF00) >> 8)).toUpperCase();
-	}
-
 	public static boolean verifyFcs(byte[] message){
-		int length = (message[1] & 0xFF) + ((message[2] & 0xFF) << 8);
+		int length = ((message[4] & 0xFF) << 24) + ((message[3] & 0xFF) << 16) + ((message[2] & 0xFF) << 8) + (message[1] & 0xFF);
 		return CommUtil.byteToHexString(message,length - 1,2).equalsIgnoreCase(CommUtil.byteToHexString(obtainFcs(message)));
 	}
 
 	public static byte[] obtainFcs(byte[] message){
-		int fcs = obtainFcs(message, 1, (message[1] & 0xFF) + ((message[2] & 0xFF) << 8) - 2);
-		return new byte[]{(byte) (fcs & 0xFF), (byte) ((fcs & 0xFF00) >> 8)};
+		int fcs = obtainFcs(message, 1, message.length - 4);
+		return new byte[]{(byte) (fcs & 0xFF), (byte) ((fcs >> 8 ) & 0xFF)};
 	}
 }

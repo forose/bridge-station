@@ -172,7 +172,7 @@ public class BridgeStation {
                         // 添加出站编码器
                         ch.pipeline().addLast(new GirderEncoder());
                         // 添加入站编码器
-                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 65535, 1, 2, -1, 0, true));
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 1024 * 1024 * 2, 1, 4, -3, 0, true));
                         ch.pipeline().addLast(new GirderDecoder());
                         ch.pipeline().addLast(new ClientHandler(BridgeStation.this));
                     }

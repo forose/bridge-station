@@ -104,6 +104,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             // 将通道连接置为待归还状态 用于在本地连接断开之后立即归还通道连接
             bridgeChannel.attr(Constants.STATUS_RETURN).set(true);
         }else {
+            log.warn("本地连接断开: " + stationChannel);
             // 归还持有的数据连接通道
             station.returnChanel(bridgeChannel);
         }

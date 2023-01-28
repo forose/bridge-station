@@ -32,10 +32,10 @@ public class GirderDecoder extends ByteArrayDecoder {
 
     private GirderMessage transMessage(byte[] bytes) {
         GirderMessage msg = new GirderMessage();
-        int length = ((bytes[2] & 0xFF) << 8) + (bytes[1] & 0xFF);
-        msg.setCmd(bytes[3]);
-        msg.setSn((short) (((bytes[4] & 0xFF) << 8) + (bytes[5] & 0xFF)));
-        msg.setData(Arrays.copyOfRange(bytes, 6, length - 1));
+        int length = ((bytes[4] & 0xFF) << 24) + ((bytes[3] & 0xFF) << 16) + ((bytes[2] & 0xFF) << 8) + (bytes[1] & 0xFF);
+        msg.setCmd(bytes[5]);
+        msg.setSn((short) (((bytes[6] & 0xFF) << 8) + (bytes[7] & 0xFF)));
+        msg.setData(Arrays.copyOfRange(bytes, 8, length - 1));
         return msg;
     }
 }
