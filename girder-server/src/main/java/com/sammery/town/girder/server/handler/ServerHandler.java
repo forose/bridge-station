@@ -81,7 +81,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         if ("11".equals(data)) {
             log.info("校验通过");
             // 组织其可以使用的端口
-            String hex = Integer.toHexString(23306);
+            String hex = Integer.toHexString(29418);
             msg.setCmd(AUTH);
             msg.setData(CommUtil.hex2Binary(hex));
             ctx.channel().writeAndFlush(msg);
@@ -95,7 +95,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             // 如果是控制通道上发过来的连接消息则去连接后端服务
             String[] lan = key.split("@")[1].split(":");
-            station.link("192.168.0.107", 6600, channel -> {
+            station.link(lan[0], Integer.parseInt(lan[1]), channel -> {
                 if (channel != null) {
                     channel.config().setAutoRead(false);
                     channel.attr(Constants.CHANNEL_KEY).set(key);

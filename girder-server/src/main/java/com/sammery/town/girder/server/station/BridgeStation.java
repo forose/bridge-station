@@ -86,7 +86,7 @@ public class BridgeStation {
                         channel.pipeline().addLast(new StationEncoder());
                         channel.pipeline().addLast(new StationHandler(BridgeStation.this));
                     }
-                }).connect("127.0.0.1", 3306).addListener((ChannelFutureListener) future -> {
+                }).connect(ip, port).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 log.info("连接服务端成功: {}", future.channel());
                 listener.complete(future.channel());
@@ -114,7 +114,7 @@ public class BridgeStation {
                         // 添加出站编码器
                         ch.pipeline().addLast(new GirderEncoder());
                         // 添加入站解码器
-                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, 1024 * 1024 * 2, 1, 4, -3, 0, true));
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(ByteOrder.LITTLE_ENDIAN, Integer.MAX_VALUE, 1, 4, -3, 0, true));
                         ch.pipeline().addLast(new GirderDecoder());
                         ch.pipeline().addLast(new ServerHandler(BridgeStation.this));
                     }
