@@ -16,12 +16,5 @@ import java.util.List;
  */
 @Slf4j
 public class StationDecoder extends ByteArrayDecoder {
-    @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) {
 
-        int readableBytes = msg.readableBytes();
-        byte[] bytes = new byte[readableBytes];
-        msg.readBytes(bytes);
-        out.add(bytes);
-    }
 }

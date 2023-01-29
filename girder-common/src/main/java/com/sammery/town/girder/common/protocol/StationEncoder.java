@@ -18,7 +18,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class StationEncoder extends MessageToByteEncoder<byte[]> {
 
-    private static final AtomicInteger SERIAL = new AtomicInteger(1);
     @Override
     protected void encode(ChannelHandlerContext ctx, byte[] bytes, ByteBuf out) {
         out.writeBytes(bytes);
