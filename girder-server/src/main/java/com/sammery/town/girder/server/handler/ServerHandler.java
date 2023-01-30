@@ -98,14 +98,10 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             station.link(lan[0], Integer.parseInt(lan[1]), channel -> {
                 if (channel != null) {
                     channel.config().setAutoRead(false);
-                    channel.attr(Constants.CHANNEL_KEY).set(key);
-                    station.bind(key, channel, true);
-                } else {
-                    station.bind(key, null, true);
                 }
+                station.bind(key, channel, true);
             });
         } else {
-            ctx.channel().attr(Constants.CHANNEL_KEY).set(key);
             station.bind(key, ctx.channel(), false);
         }
     }

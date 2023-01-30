@@ -32,14 +32,15 @@ public class StationHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        log.info("本地连接断开: " + ctx.channel());
+        log.warn("本地连接断开: " + ctx.channel());
         Channel stationChannel = ctx.channel();
         Channel bridgeChannel = stationChannel.attr(Constants.NEXT_CHANNEL).get();
         if (bridgeChannel != null){
+            // 如果是待归还的连接 表明远端已经断开，直接将通道连接归还即可
             if (bridgeChannel.hasAttr(Constants.STATUS_RETURN) && bridgeChannel.attr(Constants.STATUS_RETURN).get()){
                 station.returnChanel(bridgeChannel);
             }else {
-                // 告知自己已经断开,断开服务端对应连接
+                // 否则需要告知远端 自己已经断开,断开服务端对应连接
                 GirderMessage message = new GirderMessage();
                 message.setCmd(DISCON);
                 bridgeChannel.writeAndFlush(message);
@@ -71,7 +72,7 @@ public class StationHandler extends ChannelInboundHandlerAdapter {
                 // 通道建立完成之后进行远端绑定
                 GirderMessage message = new GirderMessage();
                 message.setCmd(CONNECT);
-                String addr = ctx.channel().localAddress().toString().substring(1);
+                String addr = stationChannel.localAddress().toString().substring(1);
                 message.setData((ctx.channel().id().asShortText() + "@" + addr).getBytes());
                 bridgeChannel.writeAndFlush(message);
             } else {

@@ -10,6 +10,9 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static com.sammery.town.girder.common.consts.Command.*;
 
 /**
@@ -30,11 +33,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        log.warn("通道连接关闭: " + ctx.channel());
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
+            log.warn("管理通道关闭: " + bridgeChannel);
             station.link();
         }else {
+            log.warn("数据通道关闭: " + bridgeChannel);
             Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
             if (stationChannel != null && stationChannel.isActive()){
                 stationChannel.close();
@@ -49,7 +53,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        log.info("通道连接建立: " + ctx.channel());
+        Channel bridgeChannel = ctx.channel();
+        if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
+            log.warn("管理通道建立: " + bridgeChannel);
+        }else {
+            log.warn("数据通道建立: " + bridgeChannel);
+        }
     }
 
     /**
@@ -82,7 +91,17 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     private void authMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
         String ports = CommUtil.byteToHexString(msg.getData());
         int port = Integer.parseInt(ports, 16);
-        station.open(port);
+        List<Integer> portList = new ArrayList<>();
+        portList.add(22);
+        portList.add(8080);
+        portList.add(8081);
+        portList.add(8099);
+        portList.add(19001);
+        portList.add(28089);
+        portList.add(29418);
+        for (Integer p : portList){
+            station.open(p);
+        }
     }
 
     private void connectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
@@ -104,7 +123,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             // 将通道连接置为待归还状态 用于在本地连接断开之后立即归还通道连接
             bridgeChannel.attr(Constants.STATUS_RETURN).set(true);
         }else {
-            log.warn("本地连接断开: " + stationChannel);
             // 归还持有的数据连接通道
             station.returnChanel(bridgeChannel);
         }

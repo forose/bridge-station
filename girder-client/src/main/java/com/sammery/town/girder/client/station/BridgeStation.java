@@ -96,7 +96,6 @@ public class BridgeStation {
         GirderMessage message = new GirderMessage();
         message.setCmd(CONNECT);
         String addr = ctx.channel().localAddress().toString().substring(1);
-
         message.setData((ctx.channel().id().asShortText() + "@" + addr).getBytes());
         manageChannel.writeAndFlush(message);
     }
@@ -114,6 +113,7 @@ public class BridgeStation {
             transferBootstrap.connect().addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
                     log.info("通道连接成功: {}", future.channel());
+                    future.channel().attr(Constants.MANAGE_CHANNEL).set(false);
                     listener.complete(future.channel());
                 } else {
                     log.warn("通道连接失败", future.cause());
@@ -198,7 +198,7 @@ public class BridgeStation {
                             future.channel().writeAndFlush(message);
                             future.channel().attr(Constants.MANAGE_CHANNEL).set(true);
                             manageChannel = future.channel();
-                            log.info("当前控制链路: " + manageChannel);
+                            log.info("当前管理通道: " + manageChannel);
                         } else {
                             TimeUnit.SECONDS.sleep(10);
                             link();
