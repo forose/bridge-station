@@ -8,8 +8,6 @@
  */
 package com.sammery.town.girder.common.utils;
 
-import org.springframework.util.StringUtils;
-
 import java.util.Arrays;
 
 /**
@@ -106,7 +104,7 @@ public class CommUtil {
     }
 
     public static String hexConverse(String input) {
-        if (StringUtils.isEmpty(input)) {
+        if (input == null || "".equals(input.trim())) {
             return input;
         }
         StringBuilder builder = new StringBuilder();

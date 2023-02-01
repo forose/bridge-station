@@ -54,7 +54,7 @@ public class StationHandler extends ChannelInboundHandlerAdapter {
      * @param ctx 上下文
      */
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+    public void channelActive(ChannelHandlerContext ctx) {
         log.info("本地连接建立: " + ctx.channel());
         Channel stationChannel = ctx.channel();
         stationChannel.config().setAutoRead(false);

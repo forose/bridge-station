@@ -137,7 +137,7 @@ public class BridgeStation {
 
     public synchronized void returnChanel(Channel channel) {
         channel.attr(Constants.STATUS_RETURN).set(false);
-        if (CHANNEL_POOL.size() > MAX_POOL_SIZE) {
+        if (CHANNEL_POOL.size() >= MAX_POOL_SIZE) {
             channel.close();
         } else {
             channel.config().setAutoRead(true);

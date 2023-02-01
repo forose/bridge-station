@@ -1,5 +1,6 @@
 package com.sammery.town.girder.server.handler;
 
+import com.sammery.town.girder.common.consts.Command;
 import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.domain.GirderMessage;
 import com.sammery.town.girder.common.utils.CommUtil;
@@ -95,6 +96,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             // 如果是控制通道上发过来的连接消息则去连接后端服务
             String[] lan = key.split("@")[1].split(":");
+            if (lan[0].equals(bridgeChannel.remoteAddress().toString().substring(1).split(":")[0])){
+                return;
+            }
             station.link(lan[0], Integer.parseInt(lan[1]), channel -> {
                 if (channel != null) {
                     channel.config().setAutoRead(false);
@@ -102,6 +106,14 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 station.bind(key, channel, true);
             });
         } else {
+            // 如果是控制通道上发过来的连接消息则去连接后端服务
+            String[] lan = key.split("@")[1].split(":");
+            if (lan[0].equals(bridgeChannel.remoteAddress().toString().substring(1).split(":")[0])){
+                GirderMessage message = new GirderMessage();
+                message.setCmd(Command.DISCON);
+                bridgeChannel.writeAndFlush(message);
+                return;
+            }
             station.bind(key, ctx.channel(), false);
         }
     }
