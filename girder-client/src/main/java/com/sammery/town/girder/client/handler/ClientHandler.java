@@ -93,17 +93,16 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         int port = Integer.parseInt(ports, 16);
         List<Integer> portList = new ArrayList<>();
         portList.add(22);
-        portList.add(7070);
         portList.add(8080);
         portList.add(8081);
         portList.add(8088);
         portList.add(8099);
         portList.add(19000);
-        portList.add(28089);
         portList.add(29418);
         for (Integer p : portList){
             station.open(p);
         }
+        station.network("172.20.3.67");
     }
 
     private void connectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {

@@ -4,10 +4,10 @@ import com.sammery.town.girder.client.handler.ClientHandler;
 import com.sammery.town.girder.client.handler.HeartHandler;
 import com.sammery.town.girder.client.handler.StationHandler;
 import com.sammery.town.girder.client.properties.ClientProperties;
-import com.sammery.town.girder.common.listener.ChannelListener;
-import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.consts.Command;
+import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.domain.GirderMessage;
+import com.sammery.town.girder.common.listener.ChannelListener;
 import com.sammery.town.girder.common.protocol.GirderDecoder;
 import com.sammery.town.girder.common.protocol.GirderEncoder;
 import com.sammery.town.girder.common.protocol.StationDecoder;
@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,6 +44,11 @@ import static com.sammery.town.girder.common.consts.Command.CONNECT;
 @Service
 @RequiredArgsConstructor
 public class BridgeStation {
+
+    /**
+     * 用于执行本地脚本使用
+     */
+    public static Runtime RUNTIME = Runtime.getRuntime();
 
     private final ClientProperties clientProperties;
 
@@ -69,6 +75,8 @@ public class BridgeStation {
 
     private final Map<Integer, Channel> stations = new ConcurrentHashMap<>();
 
+    private final Map<String,String> networks = new ConcurrentHashMap<>();
+
     /**
      * 打开本地需要启动的服务端口
      *
@@ -84,6 +92,30 @@ public class BridgeStation {
                 log.error("BridgeStation fail bind to " + port);
             }
         });
+    }
+    public void network(String ip) {
+        try {
+
+            networks.put(ip,ip);
+            RUNTIME.exec("cmd /c " + "netsh interface ipv4 add address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0").waitFor();
+            log.info("IP资源添加成功");
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
+            log.info("IP资源添加失败");
+            networks.remove(ip);
+        }
+    }
+
+    private void release(){
+        for (String ip : networks.values()){
+            try {
+                log.info("IP资源释放");
+                RUNTIME.exec("cmd /c " + "netsh interface ipv4 delete address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        networks.clear();
     }
 
     /**
@@ -148,7 +180,7 @@ public class BridgeStation {
     }
 
     @PostConstruct
-    public void init() {
+    public void initStation() {
         stationBootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .childOption(ChannelOption.TCP_NODELAY, true)
@@ -186,6 +218,7 @@ public class BridgeStation {
                 channel.close();
             }
         }
+        release();
         stations.clear();
         if (manageChannel == null || !manageChannel.isOpen() || !manageChannel.isActive()) {
             transferBootstrap.connect()
@@ -208,7 +241,8 @@ public class BridgeStation {
     }
 
     @PreDestroy
-    public void destroy() {
+    public void destroyStation() {
+        release();
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
     }

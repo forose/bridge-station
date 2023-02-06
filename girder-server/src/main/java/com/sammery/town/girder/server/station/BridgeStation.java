@@ -48,6 +48,9 @@ public class BridgeStation {
 
     private Channel channel;
 
+    /**
+     * 处于等待连接配对的集合
+     */
     private final Map<String, Channel> binding = new ConcurrentHashMap<>();
 
     public synchronized void bind(String key, Channel channel, boolean station) {
@@ -72,11 +75,20 @@ public class BridgeStation {
                 message.setData(key.getBytes());
                 has.writeAndFlush(message);
             }
+            // 如果已经配对成功,则移除掉原有内容
+            binding.remove(key);
         } else {
             binding.put(key, channel);
         }
     }
 
+    /**
+     * 用于服务端代理与实际服务连接并异步返回连接进行处理
+     *
+     * @param ip 需要连接的IP
+     * @param port 需要连接的端口
+     * @param listener 连接建立之后的动作
+     */
     public void link(String ip, int port, final ChannelListener listener) {
         new Bootstrap().group(stationGroup).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true)
                 .handler(new ChannelInitializer<Channel>() {
@@ -97,8 +109,15 @@ public class BridgeStation {
         });
     }
 
+    /**
+     * 项目启动完成初始化配置,主要包括两步:
+     * 第一:创建服务端
+     * 第二:创建客户端连接的Group
+     *
+     * @throws InterruptedException 异常
+     */
     @PostConstruct
-    public void initChannel() throws InterruptedException {
+    public void initStation() throws InterruptedException {
         bossGroup = new NioEventLoopGroup(serverProperties.getBoss());
         workerGroup = new NioEventLoopGroup(serverProperties.getWorker());
         stationGroup = new NioEventLoopGroup();
@@ -131,7 +150,7 @@ public class BridgeStation {
     }
 
     @PreDestroy
-    public void destroyChannel() {
+    public void destroyStation() {
         if (channel != null) {
             channel.close();
         }

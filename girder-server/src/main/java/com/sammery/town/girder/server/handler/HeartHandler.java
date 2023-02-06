@@ -19,7 +19,7 @@ public class HeartHandler extends IdleStateHandler {
     }
 
     @Override
-    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
+    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
         if (evt.state() == IdleState.READER_IDLE) {
             log.warn("Channel Read Timeout {}", ctx.channel());
             ctx.channel().close();

@@ -21,7 +21,7 @@ public class HeartHandler extends IdleStateHandler {
     }
 
     @Override
-    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
+    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
         if (evt.state() == IdleState.WRITER_IDLE) {
             GirderMessage message = new GirderMessage();
             message.setCmd(Command.HEART);
