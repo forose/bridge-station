@@ -58,6 +58,11 @@ public class StationHandler extends ChannelInboundHandlerAdapter {
         log.info("本地连接建立: " + ctx.channel());
         Channel stationChannel = ctx.channel();
         stationChannel.config().setAutoRead(false);
+        // 通道建立完成之后进行远端绑定
+        GirderMessage message = new GirderMessage();
+        message.setCmd(CONNECT);
+        String addr = stationChannel.localAddress().toString().substring(1);
+        message.setData((ctx.channel().id().asShortText() + "@" + addr).getBytes());
         // 建立连接之后 建立代理通道 连接至服务端
         // 这里采用异步处理的方式
         // 1.通过底层连接告知服务端去建对端连接
@@ -69,17 +74,12 @@ public class StationHandler extends ChannelInboundHandlerAdapter {
                 stationChannel.attr(Constants.NEXT_CHANNEL).set(bridgeChannel);
                 // 将当前通道添加至代理通道的下一跳
                 bridgeChannel.attr(Constants.NEXT_CHANNEL).set(stationChannel);
-                // 通道建立完成之后进行远端绑定
-                GirderMessage message = new GirderMessage();
-                message.setCmd(CONNECT);
-                String addr = stationChannel.localAddress().toString().substring(1);
-                message.setData((ctx.channel().id().asShortText() + "@" + addr).getBytes());
                 bridgeChannel.writeAndFlush(message);
             } else {
                 ctx.close();
             }
         });
-        station.active(ctx);
+        station.active(message);
     }
 
     /**

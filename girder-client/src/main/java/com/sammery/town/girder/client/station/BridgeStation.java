@@ -33,10 +33,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
-import static com.sammery.town.girder.common.consts.Command.CONNECT;
-
 /**
- * 塔台
+ * 塔台桥头堡
  *
  * @author 沙漠渔
  */
@@ -75,7 +73,7 @@ public class BridgeStation {
 
     private final Map<Integer, Channel> stations = new ConcurrentHashMap<>();
 
-    private final Map<String,String> networks = new ConcurrentHashMap<>();
+    private final Map<String, String> networks = new ConcurrentHashMap<>();
 
     /**
      * 打开本地需要启动的服务端口
@@ -93,10 +91,11 @@ public class BridgeStation {
             }
         });
     }
+
     public void network(String ip) {
         try {
 
-            networks.put(ip,ip);
+            networks.put(ip, ip);
             RUNTIME.exec("cmd /c " + "netsh interface ipv4 add address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0").waitFor();
             log.info("IP资源添加成功");
         } catch (InterruptedException | IOException e) {
@@ -106,8 +105,8 @@ public class BridgeStation {
         }
     }
 
-    private void release(){
-        for (String ip : networks.values()){
+    private void release() {
+        for (String ip : networks.values()) {
             try {
                 log.info("IP资源释放");
                 RUNTIME.exec("cmd /c " + "netsh interface ipv4 delete address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0");
@@ -120,15 +119,8 @@ public class BridgeStation {
 
     /**
      * 申请与服务端建立连接 通过控制通道传递连接信息，实现鉴权、控制，实现服务端与对端同步建立，减少时间消耗
-     *
-     * @param ctx 上下文
      */
-    public void active(ChannelHandlerContext ctx) {
-        // 发送连接请求给服务端 做好连接准备
-        GirderMessage message = new GirderMessage();
-        message.setCmd(CONNECT);
-        String addr = ctx.channel().localAddress().toString().substring(1);
-        message.setData((ctx.channel().id().asShortText() + "@" + addr).getBytes());
+    public void active(GirderMessage message) {
         manageChannel.writeAndFlush(message);
     }
 
