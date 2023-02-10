@@ -67,7 +67,7 @@ public class BridgeStation {
 
     private static final ConcurrentLinkedQueue<Channel> CHANNEL_POOL = new ConcurrentLinkedQueue<>();
 
-    private static final int MAX_POOL_SIZE = 10;
+    private static final int MAX_POOL_SIZE = 50;
 
     private Channel manageChannel;
 
@@ -154,6 +154,8 @@ public class BridgeStation {
                 return null;
             } else if (channel.isActive() && channel.isOpen()) {
                 return channel;
+            }else {
+                channel.close();
             }
         }
         return null;
@@ -164,10 +166,13 @@ public class BridgeStation {
         if (CHANNEL_POOL.size() >= MAX_POOL_SIZE) {
             channel.close();
         } else {
-            channel.config().setAutoRead(true);
-            channel.attr(Constants.NEXT_CHANNEL).set(null);
-            CHANNEL_POOL.offer(channel);
-            log.debug("归还通道连接: {}, 当前连接池大小: {} ", channel, CHANNEL_POOL.size());
+            if (channel.isActive() && channel.isOpen()){
+                channel.attr(Constants.NEXT_CHANNEL).set(null);
+                CHANNEL_POOL.offer(channel);
+                log.debug("归还通道连接: {}, 当前连接池: {} ", channel, CHANNEL_POOL.size());
+            }else {
+                log.debug("通道连接已断开,丢弃: " + channel);
+            }
         }
     }
 
