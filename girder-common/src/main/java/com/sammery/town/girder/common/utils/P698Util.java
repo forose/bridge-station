@@ -8,8 +8,6 @@
  */
 package com.sammery.town.girder.common.utils;
 
-import sun.nio.cs.MS1250;
-
 /**
  * 说明:
  *

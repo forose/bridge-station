@@ -1,7 +1,7 @@
 package com.sammery.town.girder.server.station;
 
-import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.consts.Command;
+import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.domain.GirderMessage;
 import com.sammery.town.girder.common.listener.ChannelListener;
 import com.sammery.town.girder.common.protocol.GirderDecoder;

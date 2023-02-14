@@ -103,6 +103,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             station.open(p);
         }
         station.network("172.20.3.67");
+        station.network("172.20.3.98");
     }
 
     private void connectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
