@@ -22,11 +22,6 @@
             <artifactId>girder-common</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>4.1.43.Final</version>
-        </dependency>
         <!-- Spring Data JPA 依赖（重要） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
