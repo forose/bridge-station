@@ -106,9 +106,14 @@ public class BridgeStation {
     }
 
     private void release() {
+        for (Channel channel : stations.values()) {
+            if (channel.isActive()) {
+                channel.close();
+            }
+        }
+        stations.clear();
         for (String ip : networks.values()) {
             try {
-                log.info("IP资源释放");
                 RUNTIME.exec("cmd /c " + "netsh interface ipv4 delete address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -154,7 +159,7 @@ public class BridgeStation {
                 return null;
             } else if (channel.isActive() && channel.isOpen()) {
                 return channel;
-            }else {
+            } else {
                 channel.close();
             }
         }
@@ -166,11 +171,11 @@ public class BridgeStation {
         if (CHANNEL_POOL.size() >= MAX_POOL_SIZE) {
             channel.close();
         } else {
-            if (channel.isActive() && channel.isOpen()){
+            if (channel.isActive() && channel.isOpen()) {
                 channel.attr(Constants.NEXT_CHANNEL).set(null);
                 CHANNEL_POOL.offer(channel);
                 log.debug("归还通道连接: {}, 当前连接池: {} ", channel, CHANNEL_POOL.size());
-            }else {
+            } else {
                 log.debug("通道连接已断开,丢弃: " + channel);
             }
         }
@@ -191,8 +196,8 @@ public class BridgeStation {
                     }
                 });
 
-        transferBootstrap.group(workerGroup).channel(NioSocketChannel.class)
-                .remoteAddress(clientProperties.getHost(), clientProperties.getPort())
+        transferBootstrap.group(workerGroup)
+                .channel(NioSocketChannel.class).remoteAddress(clientProperties.getHost(), clientProperties.getPort())
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) {
@@ -210,30 +215,23 @@ public class BridgeStation {
     }
 
     public synchronized void link() {
-        for (Channel channel : stations.values()) {
-            if (channel.isActive()) {
-                channel.close();
-            }
-        }
         release();
-        stations.clear();
         if (manageChannel == null || !manageChannel.isOpen() || !manageChannel.isActive()) {
-            transferBootstrap.connect()
-                    .addListener((ChannelFutureListener) future -> {
-                        if (future.isSuccess()) {
-                            GirderMessage message = new GirderMessage();
-                            message.setCmd(Command.AUTH);
-                            // todo 待确认是通过什么方式进行验证
-                            message.setData(new byte[]{0x11});
-                            future.channel().writeAndFlush(message);
-                            future.channel().attr(Constants.MANAGE_CHANNEL).set(true);
-                            manageChannel = future.channel();
-                            log.info("当前管理通道: " + manageChannel);
-                        } else {
-                            TimeUnit.SECONDS.sleep(10);
-                            link();
-                        }
-                    });
+            transferBootstrap.connect().addListener((ChannelFutureListener) future -> {
+                if (future.isSuccess()) {
+                    GirderMessage message = new GirderMessage();
+                    message.setCmd(Command.AUTH);
+                    // todo 待确认是通过什么方式进行验证
+                    message.setData(new byte[]{0x11});
+                    future.channel().writeAndFlush(message);
+                    future.channel().attr(Constants.MANAGE_CHANNEL).set(true);
+                    manageChannel = future.channel();
+                    log.info("当前管理通道: " + manageChannel);
+                } else {
+                    TimeUnit.SECONDS.sleep(10);
+                    link();
+                }
+            });
         }
     }
 
