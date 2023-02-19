@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class ClientApplication {
     public static void main(String[] args) {
+        // 去掉banner信息
         SpringApplication app = new SpringApplication(ClientApplication.class);
         app.setBannerMode(Banner.Mode.OFF);
         app.run(args);
