@@ -10,8 +10,8 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static com.sammery.town.girder.common.consts.Command.*;
 
@@ -37,10 +37,10 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             log.warn("管理通道关闭: " + bridgeChannel);
             station.link();
-        }else {
+        } else {
             log.warn("数据通道关闭: " + bridgeChannel);
             Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
-            if (stationChannel != null && stationChannel.isActive()){
+            if (stationChannel != null && stationChannel.isActive()) {
                 stationChannel.close();
             }
         }
@@ -56,7 +56,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             log.info("管理通道建立: " + bridgeChannel);
-        }else {
+        } else {
             log.info("数据通道建立: " + bridgeChannel);
         }
     }
@@ -89,21 +89,13 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void authMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
-        String ports = CommUtil.byteToHexString(msg.getData());
-        int port = Integer.parseInt(ports, 16);
-        List<Integer> portList = new ArrayList<>();
-        portList.add(22);
-        portList.add(8080);
-        portList.add(8081);
-        portList.add(8088);
-        portList.add(8099);
-        portList.add(19000);
-        portList.add(29418);
-        for (Integer p : portList){
-            station.open(p);
-        }
-        station.network("172.20.3.67");
-        station.network("172.20.3.98");
+        String data = CommUtil.byteToHexString(msg.getData());
+        String[] lanInfos = data.split(",");
+        Arrays.stream(lanInfos).filter(x -> x.split(":").length == 2).collect(Collectors.toList()).forEach(x -> {
+            String[] lanInfo = x.split(":");
+            station.network(lanInfo[0]);
+            station.open(Integer.parseInt(lanInfo[1]));
+        });
     }
 
     private void connectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
@@ -124,7 +116,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             stationChannel.close();
             // 将通道连接置为待归还状态 用于在本地连接断开之后立即归还通道连接
             bridgeChannel.attr(Constants.STATUS_RETURN).set(true);
-        }else {
+        } else {
             // 归还持有的数据连接通道
             station.returnChanel(bridgeChannel);
         }

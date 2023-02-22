@@ -59,9 +59,9 @@ public class BridgeStation {
      */
     private final EventLoopGroup workerGroup = new NioEventLoopGroup();
     /**
-     * 桥头堡Server端
+     * 桥头堡Server端 支持地址复用
      */
-    private final ServerBootstrap stationBootstrap = new ServerBootstrap();
+    private final ServerBootstrap stationBootstrap = new ServerBootstrap().childOption(ChannelOption.SO_REUSEADDR, true);
 
     private final Bootstrap transferBootstrap = new Bootstrap();
 
@@ -84,7 +84,7 @@ public class BridgeStation {
         ChannelFuture channelFuture = stationBootstrap.bind(port);
         channelFuture.addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                stations.put(port, future.channel());
+                 stations.put(port, future.channel());
                 log.info("BridgeStation success bind to " + port);
             } else {
                 log.error("BridgeStation fail bind to " + port);
@@ -94,9 +94,10 @@ public class BridgeStation {
 
     public void network(String ip) {
         try {
-
-            networks.put(ip, ip);
-            RUNTIME.exec("cmd /c " + "netsh interface ipv4 add address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0").waitFor();
+            int res = RUNTIME.exec("cmd /c " + "netsh interface ipv4 add address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0").waitFor();
+            if (res == 0){
+                networks.put(ip, ip);
+            }
             log.info("IP资源添加成功");
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
