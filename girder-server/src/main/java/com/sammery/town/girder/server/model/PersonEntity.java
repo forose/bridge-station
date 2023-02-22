@@ -1,18 +1,18 @@
 package com.sammery.town.girder.server.model;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
 
-@Entity(name = "person") @Getter @Setter
+@Entity(name = "person")
+@EqualsAndHashCode(callSuper = true)
+@Getter @Setter
 public class PersonEntity extends BaseEntity{
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
     @Column
     private String name;
-    @Column
+    @Column(unique = true, nullable = false)
     private String md5;
     @Column
     private String identity;
