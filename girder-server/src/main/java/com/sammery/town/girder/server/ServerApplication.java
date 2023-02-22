@@ -1,5 +1,7 @@
 package com.sammery.town.girder.server;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -8,9 +10,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * @author 沙漠渔
  */
-@SpringBootApplication
+@SpringBootApplication@Slf4j
 public class ServerApplication {
     public static void main(String[] args) {
-        SpringApplication.run(ServerApplication.class, args);
+        // 去掉banner信息
+        SpringApplication app = new SpringApplication(ServerApplication.class);
+        app.setBannerMode(Banner.Mode.OFF);
+        app.run(args);
     }
 }
