@@ -10,8 +10,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * @author 沙漠渔
  */
-@SpringBootApplication@Slf4j
+@SpringBootApplication
+@Slf4j
 public class ServerApplication {
+
     public static void main(String[] args) {
         // 去掉banner信息
         SpringApplication app = new SpringApplication(ServerApplication.class);

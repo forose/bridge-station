@@ -9,7 +9,7 @@ import javax.persistence.*;
 public class ServiceEntity extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
     @Column
     private String host;
     @Column

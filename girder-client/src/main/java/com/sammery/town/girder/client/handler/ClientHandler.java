@@ -10,7 +10,9 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.sammery.town.girder.common.consts.Command.*;
@@ -32,10 +34,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      * @param ctx 上下文
      */
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
+    public void channelInactive(ChannelHandlerContext ctx) throws InterruptedException {
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             log.warn("管理通道关闭: " + bridgeChannel);
+            TimeUnit.SECONDS.sleep(10);
             station.link();
         } else {
             log.warn("数据通道关闭: " + bridgeChannel);
@@ -89,7 +92,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void authMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
-        String data = CommUtil.byteToHexString(msg.getData());
+        String data = new String(msg.getData(), StandardCharsets.UTF_8);
         String[] lanInfos = data.split(",");
         Arrays.stream(lanInfos).filter(x -> x.split(":").length == 2).collect(Collectors.toList()).forEach(x -> {
             String[] lanInfo = x.split(":");

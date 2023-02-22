@@ -12,6 +12,7 @@ import com.sammery.town.girder.common.protocol.GirderDecoder;
 import com.sammery.town.girder.common.protocol.GirderEncoder;
 import com.sammery.town.girder.common.protocol.StationDecoder;
 import com.sammery.town.girder.common.protocol.StationEncoder;
+import com.sammery.town.girder.common.utils.UniqueUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -28,6 +29,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -222,8 +224,7 @@ public class BridgeStation {
                 if (future.isSuccess()) {
                     GirderMessage message = new GirderMessage();
                     message.setCmd(Command.AUTH);
-                    // todo 待确认是通过什么方式进行验证
-                    message.setData(new byte[]{0x11});
+                    message.setData(UniqueUtil.getBoardSerialNumber().concat(",").concat(clientProperties.getIdentity()).getBytes(StandardCharsets.UTF_8));
                     future.channel().writeAndFlush(message);
                     future.channel().attr(Constants.MANAGE_CHANNEL).set(true);
                     manageChannel = future.channel();
@@ -241,5 +242,9 @@ public class BridgeStation {
         release();
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
+    }
+
+    public String obtainIdentify(){
+        return clientProperties.getIdentity();
     }
 }

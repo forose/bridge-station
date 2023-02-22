@@ -3,13 +3,17 @@ package com.sammery.town.girder.server.handler;
 import com.sammery.town.girder.common.consts.Command;
 import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.domain.GirderMessage;
-import com.sammery.town.girder.common.utils.CommUtil;
+import com.sammery.town.girder.server.model.ServiceEntity;
 import com.sammery.town.girder.server.station.BridgeStation;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.sammery.town.girder.common.consts.Command.*;
 
@@ -78,20 +82,22 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void authMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
-        String data = CommUtil.byteToHexString(msg.getData());
-        if ("11".equals(data)) {
-            log.info("校验通过");
-            // 组织其可以使用的端口
-            String hex = Integer.toHexString(29418);
+        String data = new String(msg.getData(),StandardCharsets.UTF_8);
+        String[] datas = data.split(",");
+        if (datas.length == 2){
+            List<ServiceEntity> services =  station.obtainService(datas[1],datas[0]);
+            if (services.size() == 0){
+                ctx.close();
+            }
             msg.setCmd(AUTH);
-            msg.setData(CommUtil.hex2Binary(hex));
+            msg.setData(services.stream().map(x->x.getHost().concat(":").concat(String.valueOf(x.getPort()))).collect(Collectors.joining(",")).getBytes(StandardCharsets.UTF_8));
             ctx.channel().writeAndFlush(msg);
             ctx.channel().attr(Constants.MANAGE_CHANNEL).set(true);
         }
     }
 
     private void connectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
-        String key = new String(msg.getData());
+        String key = new String(msg.getData(), StandardCharsets.UTF_8);
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             // 如果是控制通道上发过来的连接消息则去连接后端服务

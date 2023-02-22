@@ -6,8 +6,11 @@ import com.sammery.town.girder.common.domain.GirderMessage;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.CharsetUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.nio.charset.StandardCharsets;
 
 import static com.sammery.town.girder.common.consts.Command.*;
 
@@ -62,7 +65,7 @@ public class StationHandler extends ChannelInboundHandlerAdapter {
         GirderMessage message = new GirderMessage();
         message.setCmd(CONNECT);
         String addr = stationChannel.localAddress().toString().substring(1);
-        message.setData((ctx.channel().id().asShortText() + "@" + addr).getBytes());
+        message.setData((ctx.channel().id().asShortText() + "@" + addr).getBytes(StandardCharsets.UTF_8));
         // 建立连接之后 建立代理通道 连接至服务端
         // 这里采用异步处理的方式
         // 1.通过底层连接告知服务端去建对端连接

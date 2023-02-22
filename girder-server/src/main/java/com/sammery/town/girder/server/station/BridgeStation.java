@@ -11,7 +11,13 @@ import com.sammery.town.girder.common.protocol.StationEncoder;
 import com.sammery.town.girder.server.handler.HeartHandler;
 import com.sammery.town.girder.server.handler.ServerHandler;
 import com.sammery.town.girder.server.handler.StationHandler;
+import com.sammery.town.girder.server.model.PersonEntity;
+import com.sammery.town.girder.server.model.RelationEntity;
+import com.sammery.town.girder.server.model.ServiceEntity;
 import com.sammery.town.girder.server.properties.ServerProperties;
+import com.sammery.town.girder.server.repository.PersonRepository;
+import com.sammery.town.girder.server.repository.RelationRepository;
+import com.sammery.town.girder.server.repository.ServiceRepository;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -23,18 +29,26 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BridgeStation {
     private final ServerProperties serverProperties;
+    private final ServiceRepository serviceRepository;
+    private final PersonRepository personRepository;
+    private final RelationRepository relationRepository;
     /**
      * 负责连接请求
      */
@@ -85,8 +99,8 @@ public class BridgeStation {
     /**
      * 用于服务端代理与实际服务连接并异步返回连接进行处理
      *
-     * @param ip 需要连接的IP
-     * @param port 需要连接的端口
+     * @param ip       需要连接的IP
+     * @param port     需要连接的端口
      * @param listener 连接建立之后的动作
      */
     public void link(String ip, int port, final ChannelListener listener) {
@@ -163,5 +177,24 @@ public class BridgeStation {
         if (stationGroup != null) {
             stationGroup.shutdownGracefully();
         }
+    }
+
+    public List<ServiceEntity> obtainService(String md5,String identity){
+        PersonEntity person = personRepository.getFirstByMd5Equals(md5);
+        if (person != null){
+            if (StringUtils.isEmpty(person.getIdentity())){
+                person.setIdentity(identity);
+                personRepository.save(person);
+            }
+            if (person.getIdentity().equals(identity)){
+                List<RelationEntity> relations = relationRepository.getAllByPerson(person.getId());
+                if (relations != null){
+                    List<Integer> serviceIds = relations.stream().map(RelationEntity::getService).collect(Collectors.toList());
+                    List<ServiceEntity> services = serviceRepository.getAllByIdIn(serviceIds);
+                    return services == null ? new ArrayList<>() : services;
+                }
+            }
+        }
+        return new ArrayList<>();
     }
 }
