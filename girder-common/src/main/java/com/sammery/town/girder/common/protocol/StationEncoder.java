@@ -1,11 +1,9 @@
 package com.sammery.town.girder.common.protocol;
 
-import com.sammery.town.girder.common.domain.GirderMessage;
-import com.sammery.town.girder.common.utils.CommUtil;
-import com.sammery.town.girder.common.utils.P698Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.ByteBuffer;
@@ -16,10 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author 沙漠渔
  */
 @Slf4j
-public class StationEncoder extends MessageToByteEncoder<byte[]> {
+public class StationEncoder extends ByteArrayEncoder {
 
-    @Override
-    protected void encode(ChannelHandlerContext ctx, byte[] bytes, ByteBuf out) {
-        out.writeBytes(bytes);
-    }
 }

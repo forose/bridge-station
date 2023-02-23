@@ -5,7 +5,7 @@ import com.sammery.town.girder.common.utils.CommUtil;
 import com.sammery.town.girder.common.utils.P698Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.bytes.ByteArrayDecoder;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
@@ -15,7 +15,7 @@ import java.util.List;
  * @author forose
  */
 @Slf4j
-public class GirderDecoder extends ByteArrayDecoder {
+public class GirderDecoder extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) {
 
