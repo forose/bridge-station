@@ -38,6 +38,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             // todo 主通道断开的话 把该终端的私有连接都给断开  暂时未做
+            // 1- 在创建连接的时候把管理通道和数据通道做个关系维护
+            // 2- 在断开时对关系维护了的数据通道做统一断开处理
         } else {
             Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
             if (stationChannel != null && stationChannel.isActive()) {
@@ -82,17 +84,28 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void authMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
-        String data = new String(msg.getData(),StandardCharsets.UTF_8);
-        String[] datas = data.split(",");
+        Channel channel = ctx.channel();
+        // 获取数据域的内容
+        String[] datas = new String(msg.getData(),StandardCharsets.UTF_8).split(",");
+        // 判断数据域是否符合要求
         if (datas.length == 2){
+            // 判断数据库中是否有对应链接参数的配置服务
             List<ServiceEntity> services =  station.obtainService(datas[1],datas[0]);
+            // 如果没有服务 就把该链接断掉
             if (services.size() == 0){
                 ctx.close();
             }
+            // 否则就返回请求到的服务数据
             msg.setCmd(AUTH);
-            msg.setData(services.stream().map(x->x.getHost().concat(":").concat(String.valueOf(x.getPort()))).collect(Collectors.joining(",")).getBytes(StandardCharsets.UTF_8));
-            ctx.channel().writeAndFlush(msg);
-            ctx.channel().attr(Constants.MANAGE_CHANNEL).set(true);
+            msg.setData(services.stream()
+                    .map(x->x.getHost().concat(":").concat(String.valueOf(x.getPort())))
+                    .collect(Collectors.joining(","))
+                    .getBytes(StandardCharsets.UTF_8)
+            );
+            // 标志当前通道为管理通道
+            channel.attr(Constants.MANAGE_CHANNEL).set(true);
+            // 发送回复消息 确认鉴权完成
+            channel.writeAndFlush(msg);
         }
     }
 
@@ -112,7 +125,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 station.bind(key, channel, true);
             });
         } else {
-            // 如果是控制通道上发过来的连接消息则去连接后端服务
             String[] lan = key.split("@")[1].split(":");
             if (lan[0].equals(bridgeChannel.remoteAddress().toString().substring(1).split(":")[0])){
                 GirderMessage message = new GirderMessage();
@@ -120,7 +132,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 bridgeChannel.writeAndFlush(message);
                 return;
             }
-            station.bind(key, ctx.channel(), false);
+            station.bind(key, bridgeChannel, false);
         }
     }
 
