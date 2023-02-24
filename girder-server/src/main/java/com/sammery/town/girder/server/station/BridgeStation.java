@@ -134,7 +134,7 @@ public class BridgeStation {
         bossGroup = new NioEventLoopGroup(serverProperties.getBoss());
         workerGroup = new NioEventLoopGroup(serverProperties.getWorker());
         stationGroup = new NioEventLoopGroup();
-        ServerBootstrap bootstrap = new ServerBootstrap();
+        ServerBootstrap bootstrap = new ServerBootstrap().childOption(ChannelOption.SO_REUSEADDR,true);
         bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .childOption(ChannelOption.TCP_NODELAY, true)

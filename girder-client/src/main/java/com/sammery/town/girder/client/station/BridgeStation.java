@@ -75,7 +75,7 @@ public class BridgeStation {
 
     private final Map<Integer, Channel> stations = new ConcurrentHashMap<>();
 
-    private final Map<String, String> networks = new ConcurrentHashMap<>();
+    private final Map<String, String> hosts = new ConcurrentHashMap<>();
 
     /**
      * 打开本地需要启动的服务端口
@@ -96,15 +96,13 @@ public class BridgeStation {
 
     public void network(String ip) {
         try {
-            int res = RUNTIME.exec("cmd /c " + "netsh interface ipv4 add address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0").waitFor();
-            if (res == 0){
-                networks.put(ip, ip);
-            }
+            RUNTIME.exec("cmd /c " + "netsh interface ipv4 add address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0").waitFor();
+            hosts.put(ip, ip);
             log.info("IP资源添加成功");
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
             log.info("IP资源添加失败");
-            networks.remove(ip);
+            hosts.remove(ip);
         }
     }
 
@@ -115,14 +113,14 @@ public class BridgeStation {
             }
         }
         stations.clear();
-        for (String ip : networks.values()) {
+        for (String ip : hosts.values()) {
             try {
                 RUNTIME.exec("cmd /c " + "netsh interface ipv4 delete address \"" + clientProperties.getNet() + "\" " + ip + " 255.255.255.0");
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        networks.clear();
+        hosts.clear();
     }
 
     /**
