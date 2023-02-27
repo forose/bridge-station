@@ -30,7 +30,7 @@
 
 # 数据时序
 <p align="center">
-	<img src="./docs/images/数据交互.png" width="70%">
+	<img src="./docs/images/数据交互.png">
 </p>
 
 # 技术路线
