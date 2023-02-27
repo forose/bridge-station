@@ -18,6 +18,7 @@ public interface Constants {
      */
     AttributeKey<Boolean> MANAGE_CHANNEL = AttributeKey.newInstance("manage_channel");
 
+    AttributeKey<String> INNER_SERVICES = AttributeKey.newInstance("inner_services");
     /**
      * 通道连接的key 用于服务端进行连接绑定使用 (异步连接,通道连接和实际连接存有相同的key 都是按照客户端那边的id@lan)
      */

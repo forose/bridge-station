@@ -86,38 +86,47 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     private void authMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
         Channel channel = ctx.channel();
         // 获取数据域的内容
-        String[] datas = new String(msg.getData(),StandardCharsets.UTF_8).split(",");
+        String[] datas = new String(msg.getData(), StandardCharsets.UTF_8).split(",");
         // 判断数据域是否符合要求
-        if (datas.length == 2){
+        if (datas.length == 2) {
             // 判断数据库中是否有对应链接参数的配置服务
-            List<ServiceEntity> services =  station.obtainService(datas[1],datas[0]);
+            List<ServiceEntity> services = station.obtainService(datas[1], datas[0]);
             // 如果没有服务 就把该链接断掉
-            if (services.size() == 0){
+            if (services.size() == 0) {
                 ctx.close();
             }
+            String servicesString = services.stream()
+                    .map(x -> x.getHost().concat(":").concat(String.valueOf(x.getPort())))
+                    .collect(Collectors.joining(","));
             // 否则就返回请求到的服务数据
             msg.setCmd(AUTH);
-            msg.setData(services.stream()
-                    .map(x->x.getHost().concat(":").concat(String.valueOf(x.getPort())))
-                    .collect(Collectors.joining(","))
-                    .getBytes(StandardCharsets.UTF_8)
-            );
+            msg.setData(servicesString.getBytes(StandardCharsets.UTF_8));
             // 标志当前通道为管理通道
             channel.attr(Constants.MANAGE_CHANNEL).set(true);
+            // 将该管理通道存在的服务记录下来 方便后续在connectMessageHandler中进行校验使用。
+            channel.attr(Constants.INNER_SERVICES).set(servicesString);
             // 发送回复消息 确认鉴权完成
             channel.writeAndFlush(msg);
         }
     }
 
     private void connectMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
+        // 建立连接请求的格式 id@ip:port
         String key = new String(msg.getData(), StandardCharsets.UTF_8);
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             // 如果是控制通道上发过来的连接消息则去连接后端服务
-            String[] lan = key.split("@")[1].split(":");
-            if (lan[0].equals(bridgeChannel.remoteAddress().toString().substring(1).split(":")[0])){
+            // 如果发过来的请求服务不在服务列表里，则直接将管理通道断掉，说明有坏想法
+            String lanStr = key.split("@")[1];
+            if (!bridgeChannel.hasAttr(Constants.INNER_SERVICES) || !bridgeChannel.attr(Constants.INNER_SERVICES).get().contains(lanStr)) {
+                bridgeChannel.close();
+            }
+            // 验证通过了之后 判断是否是去请求自己的服务 如果是则直接return掉 避免陷入死循环（这里待确认是否还有其他情况）
+            String[] lan = lanStr.split(":");
+            if (lan[0].equals(bridgeChannel.remoteAddress().toString().substring(1).split(":")[0])) {
                 return;
             }
+            // 否验证通过了则进入后端的服务连接过程
             station.link(lan[0], Integer.parseInt(lan[1]), channel -> {
                 if (channel != null) {
                     channel.config().setAutoRead(false);
@@ -126,7 +135,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             });
         } else {
             String[] lan = key.split("@")[1].split(":");
-            if (lan[0].equals(bridgeChannel.remoteAddress().toString().substring(1).split(":")[0])){
+            if (lan[0].equals(bridgeChannel.remoteAddress().toString().substring(1).split(":")[0])) {
                 GirderMessage message = new GirderMessage();
                 message.setCmd(Command.DISCON);
                 bridgeChannel.writeAndFlush(message);
