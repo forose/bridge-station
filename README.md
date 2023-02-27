@@ -2,8 +2,8 @@
 	<img src="./docs/images/bridge.png" width="70%">
 </p>
 <p align="center">
-  <a href='https://gitee.com/sammery/sam-girder/stargazers'><img src='https://gitee.com/sammery/sam-girder/badge/star.svg?theme=dark' alt='star'></img></a>
-  <a href='https://gitee.com/sammery/sam-girder/members'><img src='https://gitee.com/sammery/sam-girder/badge/fork.svg?theme=dark' alt='fork'></img></a>
+  <a href='https://gitee.com/sammery/bridge-station/stargazers'><img src='https://gitee.com/sammery/bridge-station/badge/star.svg?theme=dark' alt='star'></img></a>
+  <a href='https://gitee.com/sammery/bridge-station/members'><img src='https://gitee.com/sammery/bridge-station/badge/fork.svg?theme=dark' alt='fork'></img></a>
 </p>
 
 # 软件简介
