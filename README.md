@@ -28,11 +28,16 @@
 
 # 软件架构
 
+# 数据时序
+<p align="center">
+	<img src="./docs/images/数据交互.png" width="70%">
+</p>
+
 # 技术路线
 - springboot
+- spring data jpa
 - netty
 - mysql
-- spring data jpa
 - lombok
 
 
