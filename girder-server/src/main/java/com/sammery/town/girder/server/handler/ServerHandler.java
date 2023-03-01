@@ -3,6 +3,7 @@ package com.sammery.town.girder.server.handler;
 import com.sammery.town.girder.common.consts.Command;
 import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.domain.GirderMessage;
+import com.sammery.town.girder.server.model.PersonEntity;
 import com.sammery.town.girder.server.model.ServiceEntity;
 import com.sammery.town.girder.server.station.BridgeStation;
 import io.netty.channel.Channel;
@@ -34,13 +35,14 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        log.warn("通道连接关闭: " + ctx.channel());
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
+            log.warn("管理通道关闭: " + ctx.channel());
             // todo 主通道断开的话 把该终端的私有连接都给断开  暂时未做
             // 1- 在创建连接的时候把管理通道和数据通道做个关系维护
             // 2- 在断开时对关系维护了的数据通道做统一断开处理
         } else {
+            log.warn("数据通道关闭: " + ctx.channel());
             Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
             if (stationChannel != null && stationChannel.isActive()) {
                 stationChannel.close();
@@ -89,8 +91,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         String[] datas = new String(msg.getData(), StandardCharsets.UTF_8).split(",");
         // 判断数据域是否符合要求
         if (datas.length == 2) {
+            PersonEntity person = station.obtainPerson(datas[1], datas[0]);
             // 判断数据库中是否有对应链接参数的配置服务
-            List<ServiceEntity> services = station.obtainService(datas[1], datas[0]);
+            List<ServiceEntity> services = station.obtainService(person);
             // 如果没有服务 就把该链接断掉
             if (services.size() == 0) {
                 ctx.close();
@@ -105,6 +108,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             channel.attr(Constants.MANAGE_CHANNEL).set(true);
             // 将该管理通道存在的服务记录下来 方便后续在connectMessageHandler中进行校验使用。
             channel.attr(Constants.INNER_SERVICES).set(servicesString);
+            channel.attr(Constants.CHANNEL_HOLDER).set(person.getName());
             // 发送回复消息 确认鉴权完成
             channel.writeAndFlush(msg);
         }
@@ -130,6 +134,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             station.link(lan[0], Integer.parseInt(lan[1]), channel -> {
                 if (channel != null) {
                     channel.config().setAutoRead(false);
+                    if (bridgeChannel.hasAttr(Constants.CHANNEL_HOLDER)){
+                        log.info("内部服务建立：" + bridgeChannel + " - " + bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
+                    }
                 }
                 station.bind(key, channel, true);
             });

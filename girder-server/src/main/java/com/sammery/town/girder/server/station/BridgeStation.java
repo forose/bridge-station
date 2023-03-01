@@ -134,7 +134,7 @@ public class BridgeStation {
         bossGroup = new NioEventLoopGroup(serverProperties.getBoss());
         workerGroup = new NioEventLoopGroup(serverProperties.getWorker());
         stationGroup = new NioEventLoopGroup();
-        ServerBootstrap bootstrap = new ServerBootstrap().childOption(ChannelOption.SO_REUSEADDR,true);
+        ServerBootstrap bootstrap = new ServerBootstrap().childOption(ChannelOption.SO_REUSEADDR, true);
         bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .childOption(ChannelOption.TCP_NODELAY, true)
@@ -178,22 +178,29 @@ public class BridgeStation {
         }
     }
 
-    public List<ServiceEntity> obtainService(String md5,String identity){
-        PersonEntity person = personRepository.getFirstByMd5Equals(md5);
-        if (person != null){
-            if (StringUtils.isEmpty(person.getIdentity())){
-                person.setIdentity(identity);
-                personRepository.save(person);
-            }
-            if (person.getIdentity().equals(identity)){
-                List<RelationEntity> relations = relationRepository.getAllByPerson(person.getId());
-                if (relations != null){
-                    List<Integer> serviceIds = relations.stream().map(RelationEntity::getService).collect(Collectors.toList());
-                    List<ServiceEntity> services = serviceRepository.getAllByIdIn(serviceIds);
-                    return services == null ? new ArrayList<>() : services;
-                }
+    public List<ServiceEntity> obtainService(PersonEntity person) {
+        if (person != null) {
+            List<RelationEntity> relations = relationRepository.getAllByPerson(person.getId());
+            if (relations != null) {
+                List<Integer> serviceIds = relations.stream().map(RelationEntity::getService).collect(Collectors.toList());
+                List<ServiceEntity> services = serviceRepository.getAllByIdIn(serviceIds);
+                return services == null ? new ArrayList<>() : services;
             }
         }
         return new ArrayList<>();
+    }
+
+    public PersonEntity obtainPerson(String md5, String identity) {
+        PersonEntity person = personRepository.getFirstByMd5Equals(md5);
+        if (person != null) {
+            if (StringUtils.isEmpty(person.getIdentity())) {
+                person.setIdentity(identity);
+                personRepository.save(person);
+            }
+            if (person.getIdentity().equals(identity)) {
+                return person;
+            }
+        }
+        return null;
     }
 }
