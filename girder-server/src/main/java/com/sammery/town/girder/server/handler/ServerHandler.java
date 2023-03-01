@@ -126,6 +126,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             String lanStr = key.split("@")[1];
             if (!bridgeChannel.hasAttr(Constants.INNER_SERVICES) || !bridgeChannel.attr(Constants.INNER_SERVICES).get().contains(lanStr)) {
                 bridgeChannel.close();
+                return;
             }
             // 验证通过了之后 判断是否是去请求自己的服务 如果是则直接return掉 避免陷入死循环（这里待确认是否还有其他情况）
             String[] lan = lanStr.split(":");

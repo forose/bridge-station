@@ -97,7 +97,9 @@ public class BridgeStation {
             // 如果已经配对成功,则移除掉原有内容
             binding.remove(key);
         } else {
-            binding.put(key, channel);
+            if (channel != null) {
+                binding.put(key, channel);
+            }
         }
     }
 
