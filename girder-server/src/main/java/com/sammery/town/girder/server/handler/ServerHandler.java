@@ -3,6 +3,7 @@ package com.sammery.town.girder.server.handler;
 import com.sammery.town.girder.common.consts.Command;
 import com.sammery.town.girder.common.consts.Constants;
 import com.sammery.town.girder.common.domain.GirderMessage;
+import com.sammery.town.girder.server.model.AccessEntity;
 import com.sammery.town.girder.server.model.PersonEntity;
 import com.sammery.town.girder.server.model.ServiceEntity;
 import com.sammery.town.girder.server.station.BridgeStation;
@@ -136,6 +137,10 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                     channel.config().setAutoRead(false);
                     if (bridgeChannel.hasAttr(Constants.CHANNEL_HOLDER)){
                         log.info("内部服务建立：" + bridgeChannel + " - " + bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
+                        AccessEntity access = new AccessEntity();
+                        access.setPerson(bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
+                        access.setService(channel.localAddress().toString().substring(1));
+                        station.saveAccess(access);
                     }
                 }
                 station.bind(key, channel, true);

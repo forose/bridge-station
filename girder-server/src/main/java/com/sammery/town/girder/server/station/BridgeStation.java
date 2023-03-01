@@ -11,10 +11,12 @@ import com.sammery.town.girder.common.protocol.StationEncoder;
 import com.sammery.town.girder.server.handler.HeartHandler;
 import com.sammery.town.girder.server.handler.ServerHandler;
 import com.sammery.town.girder.server.handler.StationHandler;
+import com.sammery.town.girder.server.model.AccessEntity;
 import com.sammery.town.girder.server.model.PersonEntity;
 import com.sammery.town.girder.server.model.RelationEntity;
 import com.sammery.town.girder.server.model.ServiceEntity;
 import com.sammery.town.girder.server.properties.ServerProperties;
+import com.sammery.town.girder.server.repository.AccessRepository;
 import com.sammery.town.girder.server.repository.PersonRepository;
 import com.sammery.town.girder.server.repository.RelationRepository;
 import com.sammery.town.girder.server.repository.ServiceRepository;
@@ -48,6 +50,7 @@ public class BridgeStation {
     private final ServiceRepository serviceRepository;
     private final PersonRepository personRepository;
     private final RelationRepository relationRepository;
+    private final AccessRepository accessRepository;
     /**
      * 负责连接请求
      */
@@ -202,5 +205,8 @@ public class BridgeStation {
             }
         }
         return null;
+    }
+    public void saveAccess(AccessEntity access){
+        accessRepository.save(access);
     }
 }
