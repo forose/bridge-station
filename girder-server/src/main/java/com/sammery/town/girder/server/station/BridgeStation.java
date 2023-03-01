@@ -36,10 +36,7 @@ import org.springframework.util.StringUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -67,39 +64,72 @@ public class BridgeStation {
 
     private Channel channel;
 
+    private static final Map<String, Channel> BOUNDING = new HashMap<>();
     /**
      * 处于等待连接配对的集合
      */
-    private final Map<String, Channel> binding = new ConcurrentHashMap<>();
+    private static final Map<String, Channel> BINDING = new HashMap<>();
 
-    public synchronized void bind(String key, Channel channel, boolean station) {
-        Channel has = binding.get(key);
+    private void bound(String key, Channel bridge) {
+        Channel has = BOUNDING.get(key);
         if (has != null) {
-            if (channel != null) {
-                has.attr(Constants.NEXT_CHANNEL).set(channel);
-                channel.attr(Constants.NEXT_CHANNEL).set(has);
-                GirderMessage message = new GirderMessage();
-                message.setCmd(Command.CONNECT);
-                message.setData(key.getBytes());
-                if (station) {
+            if (has.hasAttr(Constants.MANAGE_CHANNEL)) {
+                has.attr(Constants.SLAVE_CHANNEL).get().add(bridge);
+            } else {
+                bridge.attr(Constants.SLAVE_CHANNEL).get().add(has);
+            }
+            BOUNDING.remove(key);
+        } else {
+            BOUNDING.put(key, bridge);
+        }
+    }
+
+    public synchronized void bind(String key, Channel bridge, Channel station) {
+        bound(key, bridge);
+        boolean manage = bridge.hasAttr(Constants.MANAGE_CHANNEL) && bridge.attr(Constants.MANAGE_CHANNEL).get();
+        bind(key, manage ? station : bridge, manage);
+    }
+
+    private void bind(String key, Channel channel, boolean station) {
+        if (BINDING.containsKey(key)) {
+            Channel has = BINDING.get(key);
+            if (station) {
+                // 如果是管理端发过来的 has就肯定是桥
+                if (channel == null) {
+                    GirderMessage message = new GirderMessage();
+                    message.setCmd(Command.DISCON);
+                    message.setData(key.getBytes());
+                    has.writeAndFlush(message);
+                } else {
+                    has.attr(Constants.NEXT_CHANNEL).set(channel);
+                    channel.attr(Constants.NEXT_CHANNEL).set(has);
+                    GirderMessage message = new GirderMessage();
+                    message.setCmd(Command.CONNECT);
+                    message.setData(key.getBytes());
                     has.writeAndFlush(message);
                     channel.config().setAutoRead(true);
+                }
+            } else {
+                // 否则 has就是站 channel就是桥
+                if (has == null) {
+                    GirderMessage message = new GirderMessage();
+                    message.setCmd(Command.DISCON);
+                    message.setData(key.getBytes());
+                    channel.writeAndFlush(message);
                 } else {
+                    has.attr(Constants.NEXT_CHANNEL).set(channel);
+                    channel.attr(Constants.NEXT_CHANNEL).set(has);
+                    GirderMessage message = new GirderMessage();
+                    message.setCmd(Command.CONNECT);
+                    message.setData(key.getBytes());
                     channel.writeAndFlush(message);
                     has.config().setAutoRead(true);
                 }
-            } else {
-                GirderMessage message = new GirderMessage();
-                message.setCmd(Command.DISCON);
-                message.setData(key.getBytes());
-                has.writeAndFlush(message);
             }
             // 如果已经配对成功,则移除掉原有内容
-            binding.remove(key);
+            BINDING.remove(key);
         } else {
-            if (channel != null) {
-                binding.put(key, channel);
-            }
+            BINDING.put(key, channel);
         }
     }
 
@@ -121,10 +151,10 @@ public class BridgeStation {
                     }
                 }).connect(ip, port).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                log.info("连接服务端成功: {}", future.channel());
+                log.info("连接服务成功: {}", future.channel());
                 listener.complete(future.channel());
             } else {
-                log.warn("连接服务端失败: {}", future.cause().getLocalizedMessage());
+                log.warn("连接服务失败: {}", future.cause().getLocalizedMessage());
                 listener.complete(null);
             }
         });
@@ -211,17 +241,18 @@ public class BridgeStation {
         }
         return null;
     }
-    public void saveAccess(AccessEntity access){
+
+    public void saveAccess(AccessEntity access) {
         Date now = new Date();
         String key = access.getPerson().concat("@").concat(access.getService());
-        if (accessCache.containsKey(key)){
+        if (accessCache.containsKey(key)) {
             Date last = accessCache.get(key);
-            if (now.getTime() - last.getTime() > 1000 * 300){
-                accessCache.put(key,now);
+            if (now.getTime() - last.getTime() > 1000 * 300) {
+                accessCache.put(key, now);
                 accessRepository.save(access);
             }
-        }else {
-            accessCache.put(key,now);
+        } else {
+            accessCache.put(key, now);
             accessRepository.save(access);
         }
     }

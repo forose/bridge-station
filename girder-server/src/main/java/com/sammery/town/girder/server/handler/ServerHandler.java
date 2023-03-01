@@ -10,11 +10,13 @@ import com.sammery.town.girder.server.station.BridgeStation;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelOutboundInvoker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,9 +42,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             log.warn("管理通道关闭: " + ctx.channel());
-            // todo 主通道断开的话 把该终端的私有连接都给断开  暂时未做
-            // 1- 在创建连接的时候把管理通道和数据通道做个关系维护
-            // 2- 在断开时对关系维护了的数据通道做统一断开处理
+            bridgeChannel.attr(Constants.SLAVE_CHANNEL).get()
+                    .forEach(ChannelOutboundInvoker::close);
         } else {
             log.warn("数据通道关闭: " + ctx.channel());
             Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
@@ -89,6 +90,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     private void authMessageHandler(ChannelHandlerContext ctx, GirderMessage msg) {
         Channel channel = ctx.channel();
+        channel.attr(Constants.SLAVE_CHANNEL).set(new ArrayList<>());
         // 获取数据域的内容
         String[] datas = new String(msg.getData(), StandardCharsets.UTF_8).split(",");
         // 判断数据域是否符合要求
@@ -113,6 +115,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             channel.attr(Constants.CHANNEL_HOLDER).set(person.getName());
             // 发送回复消息 确认鉴权完成
             channel.writeAndFlush(msg);
+        } else {
+            channel.close();
         }
     }
 
@@ -125,19 +129,20 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             // 如果发过来的请求服务不在服务列表里，则直接将管理通道断掉，说明有坏想法
             String lanStr = key.split("@")[1];
             if (!bridgeChannel.hasAttr(Constants.INNER_SERVICES) || !bridgeChannel.attr(Constants.INNER_SERVICES).get().contains(lanStr)) {
-                bridgeChannel.close();
+                station.bind(key, bridgeChannel, null);
                 return;
             }
             // 验证通过了之后 判断是否是去请求自己的服务 如果是则直接return掉 避免陷入死循环（这里待确认是否还有其他情况）
             String[] lan = lanStr.split(":");
             if (lan[0].equals(bridgeChannel.remoteAddress().toString().substring(1).split(":")[0])) {
+                station.bind(key, bridgeChannel, null);
                 return;
             }
             // 否验证通过了则进入后端的服务连接过程
             station.link(lan[0], Integer.parseInt(lan[1]), channel -> {
                 if (channel != null) {
                     channel.config().setAutoRead(false);
-                    if (bridgeChannel.hasAttr(Constants.CHANNEL_HOLDER)){
+                    if (bridgeChannel.hasAttr(Constants.CHANNEL_HOLDER)) {
                         log.info("内部服务建立：" + bridgeChannel + " - " + bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
                         AccessEntity access = new AccessEntity();
                         access.setPerson(bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
@@ -146,7 +151,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                         station.saveAccess(access);
                     }
                 }
-                station.bind(key, channel, true);
+                station.bind(key, bridgeChannel, channel);
             });
         } else {
             String[] lan = key.split("@")[1].split(":");
@@ -156,7 +161,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 bridgeChannel.writeAndFlush(message);
                 return;
             }
-            station.bind(key, bridgeChannel, false);
+            station.bind(key, bridgeChannel, null);
         }
     }
 

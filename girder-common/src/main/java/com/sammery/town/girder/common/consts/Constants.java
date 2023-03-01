@@ -3,6 +3,8 @@ package com.sammery.town.girder.common.consts;
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 
+import java.util.List;
+
 /**
  * @author 沙漠渔
  */
@@ -18,8 +20,19 @@ public interface Constants {
      */
     AttributeKey<Boolean> MANAGE_CHANNEL = AttributeKey.newInstance("manage_channel");
 
+    /**
+     * 是否为管理用的通道连接 用于做特殊处理
+     */
+    AttributeKey<List<Channel>> SLAVE_CHANNEL = AttributeKey.newInstance("slave_channel");
+
+    /**
+     * 通道持有者 数据库中的人员
+     */
     AttributeKey<String> CHANNEL_HOLDER = AttributeKey.newInstance("channel_holder");
 
+    /**
+     * 内部服务列表在manage通道中存放，用于验证请求是否可以放行
+     */
     AttributeKey<String> INNER_SERVICES = AttributeKey.newInstance("inner_services");
     /**
      * 通道连接的key 用于服务端进行连接绑定使用 (异步连接,通道连接和实际连接存有相同的key 都是按照客户端那边的id@lan)
