@@ -14,5 +14,7 @@ public class AccessEntity extends BaseEntity{
     @Column
     private String person;
     @Column
+    private String remote;
+    @Column
     private String service;
 }

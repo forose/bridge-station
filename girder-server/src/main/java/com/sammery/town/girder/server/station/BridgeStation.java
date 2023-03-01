@@ -37,6 +37,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,6 +52,8 @@ public class BridgeStation {
     private final PersonRepository personRepository;
     private final RelationRepository relationRepository;
     private final AccessRepository accessRepository;
+
+    private final Map<String, Date> accessCache = new ConcurrentHashMap<>();
     /**
      * 负责连接请求
      */
@@ -207,6 +210,17 @@ public class BridgeStation {
         return null;
     }
     public void saveAccess(AccessEntity access){
-        accessRepository.save(access);
+        Date now = new Date();
+        String key = access.getPerson().concat("@").concat(access.getService());
+        if (accessCache.containsKey(key)){
+            Date last = accessCache.get(key);
+            if (now.getTime() - last.getTime() > 1000 * 300){
+                accessCache.put(key,now);
+                accessRepository.save(access);
+            }
+        }else {
+            accessCache.put(key,now);
+            accessRepository.save(access);
+        }
     }
 }

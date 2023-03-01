@@ -13,6 +13,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -139,7 +140,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                         log.info("内部服务建立：" + bridgeChannel + " - " + bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
                         AccessEntity access = new AccessEntity();
                         access.setPerson(bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
-                        access.setService(channel.localAddress().toString().substring(1));
+                        access.setService(channel.remoteAddress().toString().substring(1));
+                        access.setRemote(((InetSocketAddress) bridgeChannel.remoteAddress()).getAddress().getHostName());
                         station.saveAccess(access);
                     }
                 }
