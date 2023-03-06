@@ -8,26 +8,19 @@ import java.io.FileWriter;
 import java.io.InputStreamReader;
 
 /**
- * <p>
- * UniqueUtil<br>
- * 计算机唯一识别实用程序
- * </p>
+ * 获取计算机唯一识别码
  *
- * @author XinLau
- * @version 1.0
- * @since 2020年10月10日 17:14
+ * @author 沙漠渔
+ * @date 2023年3月6日 08:51:41
  */
 @Slf4j
 public class UniqueUtil {
 
-
     /**
-     * 获取 Windows 主板序列号
+     * 获取计算机唯一识别码
      *
-     * @return String - 计算机主板序列号
-     * @author XinLau
-     * @creed The only constant is change ! ! !
-     * @since 2020/10/10 17:15
+     * @author 沙漠渔
+     * @date 2023年3月6日 08:51:41
      */
     public static String getBoardSerialNumber() {
         StringBuilder result = new StringBuilder();

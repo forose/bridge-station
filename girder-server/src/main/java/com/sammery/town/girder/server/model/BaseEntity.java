@@ -2,12 +2,15 @@ package com.sammery.town.girder.server.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Date;
 
-@Getter@Setter@MappedSuperclass
+@Getter@Setter@MappedSuperclass@Accessors(chain = true)
 public class BaseEntity implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,6 +19,7 @@ public class BaseEntity implements Serializable {
      * 创建时间
      */
     @Column
+    @CreationTimestamp
     @Temporal(TemporalType.TIMESTAMP)
     private Date createTime;
 
@@ -23,28 +27,7 @@ public class BaseEntity implements Serializable {
      * 更新时间
      */
     @Column
+    @UpdateTimestamp
     @Temporal(TemporalType.TIMESTAMP)
     private Date updateTime;
-
-    @PrePersist
-    protected void prePersist() {
-        Date now = new Date();
-        if (createTime == null) {
-            createTime = now;
-        }
-
-        if (updateTime == null) {
-            updateTime = now;
-        }
-    }
-
-    @PreUpdate
-    protected void preUpdate() {
-        updateTime = new Date();
-    }
-
-    @PreRemove
-    protected void preRemove() {
-        updateTime = new Date();
-    }
 }
