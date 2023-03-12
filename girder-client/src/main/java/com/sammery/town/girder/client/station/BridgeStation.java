@@ -241,8 +241,4 @@ public class BridgeStation {
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
     }
-
-    public String obtainIdentify(){
-        return clientProperties.getIdentity();
-    }
 }

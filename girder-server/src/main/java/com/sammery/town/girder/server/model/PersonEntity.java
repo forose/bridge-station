@@ -17,4 +17,9 @@ public class PersonEntity extends BaseEntity{
     private String md5;
     @Column
     private String identity;
+    /**
+     * 人员在线状态 0为离线 1为在线
+     */
+    @Column
+    private Integer status;
 }

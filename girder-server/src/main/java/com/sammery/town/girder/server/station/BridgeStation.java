@@ -237,6 +237,7 @@ public class BridgeStation {
         if (person != null) {
             if (StringUtils.isEmpty(person.getIdentity())) {
                 person.setIdentity(identity);
+                person.setCreateTime(new Date());
                 personRepository.save(person);
             }
             if (person.getIdentity().equals(identity)) {
@@ -245,10 +246,13 @@ public class BridgeStation {
         }
         return null;
     }
+    public PersonEntity obtainPerson(Integer id) {
+        return personRepository.findById(id).orElse(null);
+    }
 
     public void saveAccess(AccessEntity access) {
         Date now = new Date();
-        String key = access.getPerson().concat("@").concat(access.getService());
+        String key = access.getPerson().toString().concat("@").concat(access.getService());
         if (accessCache.containsKey(key)) {
             Date last = accessCache.get(key);
             if (now.getTime() - last.getTime() > 1000 * 300) {
@@ -259,5 +263,9 @@ public class BridgeStation {
             accessCache.put(key, now);
             accessRepository.save(access);
         }
+    }
+
+    public void updateStatus(PersonEntity person){
+        personRepository.save(person);
     }
 }

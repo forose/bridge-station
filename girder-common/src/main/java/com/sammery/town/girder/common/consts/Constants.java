@@ -28,7 +28,7 @@ public interface Constants {
     /**
      * 通道持有者 数据库中的人员
      */
-    AttributeKey<String> CHANNEL_HOLDER = AttributeKey.newInstance("channel_holder");
+    AttributeKey<Integer> CHANNEL_HOLDER = AttributeKey.newInstance("channel_holder");
 
     /**
      * 内部服务列表在manage通道中存放，用于验证请求是否可以放行

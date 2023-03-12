@@ -42,6 +42,12 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             log.warn("管理通道关闭: " + ctx.channel());
+            Integer id = bridgeChannel.attr(Constants.CHANNEL_HOLDER).get();
+            PersonEntity person = station.obtainPerson(id);
+            if (person != null){
+                person.setStatus(0);
+            }
+            station.updateStatus(person);
             bridgeChannel.attr(Constants.SLAVE_CHANNEL).get()
                     .forEach(ChannelOutboundInvoker::close);
         } else {
@@ -61,11 +67,11 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     /**
      * 消息读取
      *
-     * @param ctx
-     * @param msg
+     * @param ctx 上下文
+     * @param msg 消息
      */
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         GirderMessage message = (GirderMessage) msg;
         switch (message.getCmd()) {
             case AUTH:
@@ -112,7 +118,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             channel.attr(Constants.MANAGE_CHANNEL).set(true);
             // 将该管理通道存在的服务记录下来 方便后续在connectMessageHandler中进行校验使用。
             channel.attr(Constants.INNER_SERVICES).set(servicesString);
-            channel.attr(Constants.CHANNEL_HOLDER).set(person.getName());
+            channel.attr(Constants.CHANNEL_HOLDER).set(person.getId());
+            person.setStatus(1);
+            station.updateStatus(person);
             // 发送回复消息 确认鉴权完成
             channel.writeAndFlush(msg);
         } else {
@@ -143,7 +151,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 if (channel != null) {
                     channel.config().setAutoRead(false);
                     if (bridgeChannel.hasAttr(Constants.CHANNEL_HOLDER)) {
-                        log.info("内部服务建立：" + bridgeChannel + " - " + bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
+                        log.info("内部服务建立：" + channel);
                         AccessEntity access = new AccessEntity();
                         access.setPerson(bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
                         access.setService(channel.remoteAddress().toString().substring(1));

@@ -13,7 +13,7 @@ import javax.persistence.Entity;
 @Getter @Setter @Accessors(chain = true)
 public class AccessEntity extends BaseEntity{
     @Column
-    private String person;
+    private Integer person;
     @Column
     private String remote;
     @Column
