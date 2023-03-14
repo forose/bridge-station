@@ -42,14 +42,14 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         Channel bridgeChannel = ctx.channel();
         if (bridgeChannel.hasAttr(Constants.MANAGE_CHANNEL) && bridgeChannel.attr(Constants.MANAGE_CHANNEL).get()) {
             log.warn("管理通道关闭: " + ctx.channel());
-            Integer id = bridgeChannel.attr(Constants.CHANNEL_HOLDER).get();
-            PersonEntity person = station.obtainPerson(id);
+            PersonEntity person = station.obtainPerson(bridgeChannel.attr(Constants.CHANNEL_HOLDER).get());
             if (person != null){
                 person.setStatus(0);
+                station.updateStatus(person);
+            }else {
+                log.warn("管理通道异常: " + ctx.channel());
             }
-            station.updateStatus(person);
-            bridgeChannel.attr(Constants.SLAVE_CHANNEL).get()
-                    .forEach(ChannelOutboundInvoker::close);
+            bridgeChannel.attr(Constants.SLAVE_CHANNEL).get().forEach(ChannelOutboundInvoker::close);
         } else {
             log.warn("数据通道关闭: " + ctx.channel());
             Channel stationChannel = bridgeChannel.attr(Constants.NEXT_CHANNEL).get();
